@@ -1,0 +1,9 @@
+# set environment variables
+NODE_ENV=production
+PORT=3000
+FULL_PATH=http://173.82.173.176/
+DB_HOST=localhost
+DB_NAME=doctrro
+DB_USER=root
+DB_PASS=
+DB_PORT=3306
