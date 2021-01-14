@@ -63,7 +63,8 @@ module.exports = {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const db_arr = {
+    
+    let db_arr = {
       full_name : entities.encode(full_name),
       email : entities.encode(email),
       contact : contact,
@@ -73,8 +74,9 @@ module.exports = {
       add_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
       update_date	 : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
     }
-    await userModel.signup(db_arr)
-        .then(async function (uid) {
+
+    const otp = await module.exports.otp_generator();
+    const website = req.get('host')
 
 			var options = {
 				method: 'POST',
@@ -91,36 +93,52 @@ module.exports = {
 			    	language 	: process.env.SMS_LANGUAGE,
 			    	route 		: process.env.SMS_ROUTE,
 			    	numbers 	: contact,
-			    	message 	: '41995' 
+			    	message 	: `
+              Dear user, `+"\n"+`
+                Verification OTP for your mobile number ${contact} for website ${website} is ${otp}.`+"\n"+`
+                This OTP is confidential. Please do not share it with anyone.  ` + "\n" + `
+                 ` + "\n" + `
+              Regards, Doctrro.
+            ` 
 			    },
 			  	json: true 
 			}
 
 			request(options, async function (error, response, body) {
+
 				  if (error) {
-				  	res.status(400).json({
-			            status: 3,
-			            message: 'Sorry!!! we are unable to send sms right now'
-		          	}).end();
+              res.status(400).json({
+                  status: 3,
+                  message: 'Sorry!!! we are unable to send sms right now'
+              }).end();
 				  }
-			  	const otp = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
 
 			  	if(body.return){
-			  		await userModel.updateOTP(uid, otp, body.request_id)
-				  	.then(() => {
-				  		res.status(200).json({
-							status: "1",
-							otp: otp,
-							id: body.request_id
-						});
-				  	})
-				  	.catch(err => {
-			          console.log('error in query', err);
-			          res.status(400).json({
-			            status: 3,
-			            message: 'Something went wrong'
-			          }).end();
-			        })
+
+            await userModel.signup(db_arr)
+              .then(async function (uid) {
+
+                  await userModel.updateOTP(uid, otp, body.request_id)
+                  .then(() => {
+                        res.status(200).json({
+                            status: "1",
+                            id: body.request_id
+                        });
+                  })
+                  .catch(err => {
+                      res.status(400).json({
+                        status: 3,
+                        message: 'Something went wrong'
+                      }).end();
+                  })
+              })
+              .catch(err => {
+                      res.status(400).json({
+                        status: 3,
+                        message: 'Something went wrong'
+                      }).end();
+              })
+
 			  	}else{
 			  		res.status(400).json({
 			            status: 3,
@@ -128,8 +146,37 @@ module.exports = {
 			        }).end();
 			  	}
 			});
+
+  },
+  otp_login: async (req, res, next) => {
+
+      const {otp, id} = req.body;
+
+    await userModel.checkOTP(otp, id)
+        .then(async function (data) {
+
+          if(data === 'FAILURE'){
+            res.status(400).json({
+              status: 2,
+              errors: {otp: 'Invalid otp submitted'} 
+            }).end();
+            
+          }else{
+
+            let token = JWT.sign({
+              iss: 'Doctrro',
+              sub: data.id,
+              email: data.email,
+              role: data.role
+            }, config.jwt.secret, {expiresIn: '2460s'});
+
+            res.status(200).json({
+              status: "1",
+              token: token
+            });
+          }
+          
         }).catch(err => {
-          console.log('error in query', err);
           res.status(400).json({
             status: 3,
             message: 'Something went wrong'
@@ -143,16 +190,16 @@ module.exports = {
 		await userModel.checkOTP(otp, id)
 	      .then(async function (data) {
 
-	      	if(data === 'SUCCESS'){
-	      		res.status(200).json({
-		          status: "1",
-		          message: 'Your account has been created successfully. Kindly login to complete your profile.'
-		        }).end();
+	      	if(data === 'FAILURE'){
+            res.status(400).json({
+              status: 2,
+              errors: {otp: 'Invalid otp submitted'} 
+            }).end();
 	      	}else{
-	      		res.status(400).json({
-			        status: 2,
-			        errors: {otp: 'Invalid otp submitted'} 
-		      	}).end();
+            res.status(200).json({
+              status: "1",
+              message: 'Your account has been created successfully. Kindly login to complete your profile.'
+            }).end();
 	      	}
 	        
 	      }).catch(err => {
@@ -162,19 +209,98 @@ module.exports = {
 	        }).end();
 	      })
 	},
+  otp_generator: async (req, res, next) => {
+    let digits = '0123456789'; 
+    let OTP = ''; 
+    for (let i = 0; i < 6; i++ ) {
+        OTP += digits[Math.floor(Math.random() * 10)]; 
+    } 
+    return OTP; 
+  },
   login: async (req, res, next) => {
       if(req.user.id > 0){
-        
-        let token = JWT.sign({
-          iss: 'Doctrro',
-          sub: req.user.id,
-          email: req.user.email,
-          role: req.user.role
-        }, config.jwt.secret, {expiresIn: '2460s'});
-        res.status(200).json({
-          status: "1",
-          token: token
-        });
+
+
+        if(req.user.send_otp){
+
+            const otp = await module.exports.otp_generator();
+            const website = req.get('host')
+
+              var options = {
+                method: 'POST',
+                  url: process.env.SMS_URL,
+                  headers: 
+                  {
+                    'cache-control': 'no-cache',
+                    'content-type': 'application/json',
+                    'authorization': process.env.SMS_KEY
+                  },
+                  body: 
+                  {
+                    sender_id   : process.env.SMS_SENDER_ID,
+                    language  : process.env.SMS_LANGUAGE,
+                    route     : process.env.SMS_ROUTE,
+                    numbers   : req.user.contact,
+                    message   : `
+                      Dear ${req.user.full_name}, `+"\n"+`
+                        Verification OTP for your mobile number ${req.user.contact} for website ${website} is ${otp}.`+"\n"+`
+                        This OTP is confidential. Please do not share it with anyone.  ` + "\n" + `
+                         ` + "\n" + `
+                      Regards, Doctrro.
+                    ` 
+                  },
+                  json: true 
+              }
+
+              request(options, async function (error, response, body) {
+
+                  if (error) {
+                      res.status(400).json({
+                          status: 3,
+                          message: 'Sorry!!! we are unable to send sms right now'
+                      }).end();
+                  }
+
+                  if(body.return){
+
+                      await userModel.updateOTP(req.user.id, otp, body.request_id)
+                      .then(() => {
+                            res.status(200).json({
+                                status: 1,
+                                id: body.request_id
+                            });
+                      })
+                      .catch(err => {
+                          res.status(400).json({
+                            status: 3,
+                            message: 'Something went wrong'
+                          }).end();
+                      })
+                  
+                  }else{
+                    res.status(400).json({
+                          status: 3,
+                          message: 'Something went wrong'
+                      }).end();
+                  }
+              });
+          
+
+        }else{
+          let token = JWT.sign({
+            iss: 'Doctrro',
+            sub: req.user.id,
+            email: req.user.email,
+            role: req.user.role
+          }, config.jwt.secret, {expiresIn: '2460s'});  
+
+
+          res.status(200).json({
+            status: "1",
+            token: token
+          });
+
+        }
     }else{
       res.status(400).json({
         status: 2,
@@ -228,8 +354,6 @@ module.exports = {
         })
         .then( async(result) => {
 
-          console.log( result )
-
           const salt = await bcrypt.genSalt(10);
           const passwordHash = await bcrypt.hash(password, salt);
           let udata =  await userModel.getUserByEmail( email );
@@ -250,7 +374,6 @@ module.exports = {
           })
         }) 
         .catch((err) => {
-          console.log(err);
             res.status(400).json({
               status: 2,
               errors: {email: 'Unable to send mail at this time'}
@@ -264,8 +387,6 @@ module.exports = {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(new_password, salt);
       const user_arr = { password: passwordHash, salt: salt, id: req.user.id} 
-
-      console.log( user_arr );
 
       await userModel.resetPassword(user_arr)
       .then(() => {

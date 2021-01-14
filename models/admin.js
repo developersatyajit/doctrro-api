@@ -28,7 +28,7 @@ module.exports = {
 	getUserList: async ()=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`
-					SELECT id,full_name,email, is_verified,
+					SELECT id,full_name,email, is_verified, is_profile_complete,
 					(
 						CASE
 							WHEN (category=1 && practioner=1) THEN 'Doctor' 
@@ -41,7 +41,13 @@ module.exports = {
 							WHEN (is_verified=1) THEN 'Verified'
 							ELSE 'Not Verified'
 						END
-					) as isActive,add_date FROM login 
+					) as isActive,
+					(
+						CASE
+							WHEN (is_profile_complete=1) THEN 'Completed'
+							ELSE 'Not Completed'
+						END
+					) as isComplete, add_date FROM login 
 				`)
 		    .then(function (data) {
 		    	resolve(data);
@@ -98,7 +104,32 @@ module.exports = {
 					WHERE id=?
 				`, [statusValue, id])
 		    .then(function (data) {
-		    	resolve(data.length > 0 && data[0].total > 0 ? true : false);
+		    	if(data.affectedRows > 0){
+		    		resolve( true );
+		    	}else{
+		    		reject( false );
+		    	}
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in getUserList');
+				reject(error);
+		    });
+		}); 
+	},
+	updateUserCompletion: async (id, status)=>{
+		return new Promise(function(resolve, reject) {
+			let statusValue = status ? 1 : 0;
+			db.queryAsync(`
+					UPDATE login
+					SET is_profile_complete=?
+					WHERE id=?
+				`, [statusValue, id])
+		    .then(function (data) {
+		    	if(data.affectedRows > 0){
+		    		resolve( true );
+		    	}else{
+		    		reject( false );
+		    	}
 		    })
 		    .catch(function (err) {
 				var error = new Error('Error in getUserList');

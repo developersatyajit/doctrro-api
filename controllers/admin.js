@@ -15,7 +15,6 @@ var request = require("request");
 
 module.exports = {
   authentication: async (req, res, next) => {
-    console.log( req.user )
     if (req.user.id > 0) {
       next();
     } else {
@@ -233,4 +232,24 @@ module.exports = {
           }).end();
         })
     },
+    change_completion: async(req, res, next) => {
+
+      const { id, status } = req.value.body;
+
+      await adminModel.updateUserCompletion( id, status )
+        .then(async function (data) {
+
+          res.status(200).json({
+            status: "1"
+          });
+          
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+    
 }

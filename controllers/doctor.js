@@ -22,9 +22,18 @@ module.exports = {
   feature: async (req, res, next) => {
       await doctorModel.feature()
         .then(async function (data) {
+          let doctors = [];
+          data.map((doctor) => {
+            if( doctor.filename ){
+              let url = req.protocol + '://' + req.get('host') + '/uploads/profilepic/' + doctor.filename;
+              doctor.url = url;
+            }
+            doctors.push( doctor );
+          })
+
           res.status(200).json({
             status: "1",
-            data: data
+            data: doctors
           });
         }).catch(err => {
           console.log('error in query', err);
@@ -55,6 +64,11 @@ module.exports = {
         .then(async (basic) =>  {
 
           var data = basic[0];
+
+          if(data.file_id){
+            let url = req.protocol + '://' + req.get('host') + '/uploads/profilepic/' + data.filename;
+            data = {...data, image_url: url}
+          }
 
           await doctorModel.getDoctorSpeciality(req.user.id)
           .then(async (speciality) => {
@@ -720,6 +734,12 @@ module.exports = {
 
     await doctorModel.getDoctorDetails( id )
       .then(async function (data) {
+
+        if(data.filename){
+          let url = req.protocol + '://' + req.get('host') + '/uploads/profilepic/' + data.filename;
+          data = {...data, url: url}
+        }
+
         res.status(200).json({
           status: "1",
           data: data

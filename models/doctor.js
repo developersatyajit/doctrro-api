@@ -4,12 +4,14 @@ module.exports = {
 	feature: async ()=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`
-				select L.full_name, L.id, GROUP_CONCAT (DE.degree SEPARATOR', ') AS deg,
-				GROUP_CONCAT (MS.sp_name SEPARATOR', ') as specname
+				select L.full_name, L.id, GROUP_CONCAT(DE.degree SEPARATOR', ') AS deg,
+				GROUP_CONCAT(MS.sp_name SEPARATOR', ') as specname,
+				UP.filename
 				from login L
 			 	LEFT JOIN doctor_education DE ON DE.doc_id = L.id
 			 	LEFT JOIN doctor_speciality DS ON DS.doc_id = L.id
 			 	LEFT JOIN master_speciality MS ON MS.id = DS.spl_id
+			 	LEFT JOIN user_photo UP ON UP.uid = L.id
 			 	where L.category = '1' and L.practioner='1'
 			 	GROUP BY L.id
 			 `)
@@ -102,8 +104,8 @@ module.exports = {
 	getDoctorChamber: async ( id )=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`SELECT * FROM doctor_chamber DC 
-				LEFT JOIN diagnostic DG 
-				ON DC.chamber_id = DG.id
+				LEFT JOIN diagnostic DG ON DG.id = DC.chamber_id
+				LEFT JOIN diagnostic_time DT ON DT.ds_id = DC.chamber_id
 				WHERE DC.doc_id=? ORDER BY DC.id DESC`, [id])
 		    .then(async (data) => {
 
@@ -763,10 +765,12 @@ module.exports = {
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`
 				select L.full_name, L.id, L.year_of_exp,
-				GROUP_CONCAT(MS.sp_name SEPARATOR', ') as specname
+				GROUP_CONCAT(MS.sp_name SEPARATOR', ') as specname,
+				UP.filename, UP.file_id
 				from login L
 			 	LEFT JOIN doctor_speciality DS ON DS.doc_id = L.id
 			 	LEFT JOIN master_speciality MS ON MS.id = DS.spl_id
+			 	LEFT JOIN user_photo UP ON UP.uid = L.id
 			 	where L.id = ?
 			 	GROUP BY L.id`, 
 			[id])

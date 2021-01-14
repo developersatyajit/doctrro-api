@@ -41,5 +41,8 @@ router.route('/reset_password')
 router.route('/submit_otp')
   .post(validateBody(schemas.submit_otp), userController.submit_otp)
 
+router.route('/otp_login')
+  .post(validateBody(schemas.submit_otp), userController.otp_login)
+
 
 module.exports = router;

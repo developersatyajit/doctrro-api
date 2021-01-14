@@ -132,7 +132,6 @@ module.exports = {
 		});
 	},
 	resetPassword: async( row ) => {
-		console.log('row', row);
 		return new Promise(function(resolve, reject) {
 			db.queryAsync("UPDATE login SET password=?, salt=? WHERE id = ?", [row.password, row.salt, row.id])
 		    .then(function (data) {
@@ -158,17 +157,43 @@ module.exports = {
 	},
 	checkOTP: async( otp, delivery_id ) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("SELECT COUNT(*) AS total, id FROM login WHERE otp=? AND delivery_id=?", [otp, delivery_id])
+			db.queryAsync(`SELECT COUNT(*) AS total, id, category, email
+				FROM login 
+				WHERE otp=? 
+				AND delivery_id=? 
+				AND is_verified=0`, [otp, delivery_id])
 		    .then(async (data) => {
 		    	if(data.length > 0 && data[0].total > 0){
-		    		await module.exports.verifiedUser(data[0].id)
-		    		.then(() => {
-		    			resolve('SUCCESS')
-		    		})
-		    		.catch((err) => {
-		    			var error = new Error('Error in reset password');
-						reject(error);
-		    		})
+
+		    		if(data[0].category === 1){
+		    			
+			    		await module.exports.makeDoctorVerified(data[0].id)
+			    		.then(() => {
+			    			resolve({
+			    				id: data[0].id,
+			    				email: data[0].email,
+			    				role: data[0].category
+			    			})
+			    		})
+			    		.catch((err) => {
+			    			var error = new Error('Error in checkotp');
+							reject(error);
+			    		})
+		    		}else{
+		    			await module.exports.makePatientVerified(data[0].id)
+			    		.then(() => {
+			    			resolve({
+			    				id: data[0].id,
+			    				email: data[0].email,
+			    				role: data[0].category
+			    			})
+			    		})
+			    		.catch((err) => {
+			    			var error = new Error('Error in checkotp');
+							reject(error);
+			    		})
+		    		}
+		    		
 		    	}else{
 		    		resolve('FAILURE')
 		    	}
@@ -179,14 +204,54 @@ module.exports = {
 		    });
 		});
 	},
-	verifiedUser: async( id ) => {
+	// revalidateOTP: async( otp, delivery_id ) => {
+	// 	return new Promise(function(resolve, reject) {
+	// 		db.queryAsync("SELECT COUNT(*) AS total, id, email, category FROM login WHERE otp=? AND delivery_id=? AND is_verified=0", [otp, delivery_id])
+	// 	    .then(async (data) => {
+	// 	    	if(data.length > 0 && data[0].total > 0){
+
+	// 	    		await module.exports.makeDoctorVerified(data[0].id)
+	// 	    		.then(() => {
+	// 	    			resolve({
+	// 	    				id: data[0].id,
+	// 	    				email: data[0].email,
+	// 	    				role: data[0].category
+	// 	    			})
+	// 	    		})
+	// 	    		.catch((err) => {
+	// 	    			var error = new Error('Error in reset password');
+	// 					reject(error);
+	// 	    		})
+	// 	    	}else{
+	// 	    		resolve('FAILURE')
+	// 	    	}
+	// 	    })
+	// 	    .catch(function (err) {
+	// 			var error = new Error('Error in reset password');
+	// 			reject(error);
+	// 	    });
+	// 	});
+	// },
+	makeDoctorVerified: async( id ) => {	// make patient verified run for doctor also
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("UPDATE login SET is_verified=1  WHERE id = ?", [id])
+			db.queryAsync("UPDATE login SET is_verified=1, is_profile_complete=0, delivery_id='', otp=''  WHERE id = ? and category = 1", [id])
 		    .then(function (data) {
 				resolve(data)
 		    })
 		    .catch(function (err) {
-				var error = new Error('Error in verifiedUser');
+				var error = new Error('Error in makeDoctorVerified');
+				reject(error);
+		    });
+		});
+	},
+	makePatientVerified: async( id ) => {	// make patient verified run for doctor also
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("UPDATE login SET is_verified=1, is_profile_complete=1, delivery_id='', otp=''  WHERE id = ? and category = 2", [id])
+		    .then(function (data) {
+				resolve(data)
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in makePatientVerified');
 				reject(error);
 		    });
 		});

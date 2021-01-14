@@ -22,7 +22,15 @@ module.exports = {
 		let err = {};
 		const isEmailExist = await userModel.emailExists(entities.encode(email));
 		if (isEmailExist) {
-			err.email = "Email already exists";
+
+			const isVerifiedUser = await userModel.isVerifiedUser(entities.encode(email));
+
+			//check if the user is verified
+			if( isVerifiedUser ){
+				err.email = "Email already exists";
+			}else{
+				err.email = 'Please login to verify your account.'
+			}
 		}
 
 		if (module.exports.isObjEmpty(err)) {
@@ -47,29 +55,43 @@ module.exports = {
 
 		let err = {};
 		let userData = await userModel.getUserByEmail(entities.encode(email));
+		let send_otp = false;
 		
 		if(!userData){
 			err.email = "Invalid login";
 		}else{
 
-			let notVerified = await userModel.isVerifiedUser(email)
-			if(!notVerified){
-				err.password = "Please verify your account";
+			let checkPassword = await module.exports.isValidPassword(password, userData[0].password);
+			if(!checkPassword){
+				err.password = "Invalid password provided";
 			}else{
-				let checkPassword = await module.exports.isValidPassword(password, userData[0].password);
-				if(!checkPassword){
-					err.password = "Invalid password provided";
+				let isVerifiedUser = await userModel.isVerifiedUser(entities.encode(email));
+
+				if(!isVerifiedUser){
+					send_otp = true;
 				}
 			}
 		}
 
 		if (module.exports.isObjEmpty(err)) {
+
 			req.user = {
 				id:userData[0].id,
 				email:userData[0].email,
-				role: userData[0].category
+				role: userData[0].category,
+				send_otp : send_otp
 			}
+
+			if(send_otp){
+				req.user = {
+					...req.user, 
+					contact: userData[0].contact,
+					full_name: userData[0].full_name
+				}
+			}
+			
 			next()
+			
 		} else {
 			return res.status(400).json({ 'status' : 2, 'errors' : err});
 		}

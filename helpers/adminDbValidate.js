@@ -67,4 +67,20 @@ module.exports = {
 			return res.status(400).json({ 'status' : 2, 'errors' : err});
 		}
 	},
+	change_completion:  async (req, res, next) => {
+		const {	id, status } = req.value.body;
+
+		let err = {};
+		let userData = await adminModel.getUserById( id );
+		
+		if(!userData){
+			err.username = "Invalid user submitted";
+		}
+
+		if (module.exports.isObjEmpty(err)) {
+			next()
+		} else {
+			return res.status(400).json({ 'status' : 2, 'errors' : err});
+		}
+	},
 }

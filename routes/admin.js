@@ -37,6 +37,9 @@ router.route('/download/:file/:id')
   .post(signature, adminController.authentication, validateBody(schemas.change_status), validateDbBody.change_status, adminController.change_status)
 
 
+  router.route('/change_completion')
+  .post(signature, adminController.authentication, validateBody(schemas.change_completion), validateDbBody.change_completion, adminController.change_completion)
+
 
 // router.route('/forgot-password')
 //   .post(validateBody(schemas.forgot_password), validateDbBody.forgot_password, userController.forgot_password)
