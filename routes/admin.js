@@ -24,6 +24,13 @@ router.route('/dashboard')
 router.route('/user_list')
   .get(signature, adminController.authentication, adminController.user_list)
 
+router.route('/speciality_list')
+  .get(signature, adminController.authentication, adminController.speciality_list)
+
+
+router.route('/forgot_password')
+  .post(validateBody(schemas.forgot_password), validateDbBody.forgot_password, adminController.forgot_password)
+
 
 router.route('/user/:id')
   .get(signature, adminController.authentication, adminController.user_details)

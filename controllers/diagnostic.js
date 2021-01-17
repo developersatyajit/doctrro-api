@@ -52,4 +52,20 @@ module.exports = {
           }).end();
         })
   },
+  getClinic: async (req, res, next) => {
+      const id = req.params.id
+      await dgModel.getClinicData(id)
+        .then(async function (data) {
+          res.status(200).json({
+            status: "1",
+            data: data
+          });
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+  },
 }

@@ -37,4 +37,19 @@ module.exports = {
 		    });
 		}); 
 	},
+	getClinicData: async ( id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`select * from diagnostic D 
+					LEFT JOIN diagnostic_time DT ON DT.ds_id = D.id
+					WHERE D.id=?`, [id])
+		    .then(async (data) => {
+				resolve(data);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in finding clinic');
+				reject(error);
+		    });
+		}); 
+	},
 }

@@ -23,6 +23,9 @@ router.route('/all')
 router.route('/find/:keyword')
 	.get(signature, dgController.authentication,dgController.find)
 
+router.route('/:id')
+	.get(signature, dgController.authentication, dgController.getClinic)
+
 // router.route('/signup')
 //   .post(validateBody(schemas.signup), validateDbBody.signup, userController.signup)
 

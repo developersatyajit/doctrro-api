@@ -83,4 +83,20 @@ module.exports = {
 			return res.status(400).json({ 'status' : 2, 'errors' : err});
 		}
 	},
+	forgot_password: async (req, res, next) => {
+		const {	email } = req.value.body;
+
+		let err = {};
+		let userData = await adminModel.getUserByEmail( email );
+		
+		if(!userData){
+			err.username = "Invalid email submitted";
+		}
+
+		if (module.exports.isObjEmpty(err)) {
+			next()
+		} else {
+			return res.status(400).json({ 'status' : 2, 'errors' : err});
+		}
+	},
 }

@@ -47,6 +47,9 @@ module.exports = {
       id: Joi.number().required(),
       status: Joi.boolean().required()
     }),
+    forgot_password: Joi.object().keys({
+      email: Joi.string().required().email().max(200)
+    }),
 
     // forgot_password: Joi.object().keys({
     //   email: Joi.string().required().email().max(100)

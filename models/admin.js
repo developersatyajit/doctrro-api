@@ -59,6 +59,21 @@ module.exports = {
 		    });
 		}); 
 	},
+	getSpecialityList: async ()=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+					SELECT * FROM master_speciality 
+				`)
+		    .then(function (data) {
+		    	resolve(data);
+		    })
+		    .catch(function (err) {
+
+				var error = new Error('Error in getUserList');
+				reject(error);
+		    });
+		}); 
+	},
 	getUserDetails: async (id)=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`
@@ -136,5 +151,17 @@ module.exports = {
 				reject(error);
 		    });
 		}); 
+	},
+	resetPassword: async( row ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("UPDATE admin SET password=?, salt=? WHERE id = ?", [row.password, row.salt, row.id])
+		    .then(function (data) {
+				resolve(data)
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in reset password');
+				reject(error);
+		    });
+		});
 	},
 }

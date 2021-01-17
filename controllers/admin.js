@@ -117,6 +117,27 @@ module.exports = {
         })
     },
 
+    speciality_list: async(req, res, next) => {
+
+      let rows = {};
+
+      await adminModel.getSpecialityList()
+        .then(async function (data) {
+
+          res.status(200).json({
+            status: "1",
+            data: data
+          });
+          
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+
     user_details: async(req, res, next) => {
 
       let rows = {};
@@ -251,5 +272,49 @@ module.exports = {
           }).end();
         })
     },
-    
+    forgot_password: async(req, res, next) => {
+
+      const { email } = req.value.body;
+
+          let transporter = nodemailer.createTransport({ sendmail: true })
+
+          let password = generator.generate({
+              length: 10,
+              numbers: true
+          });
+
+          await transporter.sendMail({
+            from: 'Doctrro <dnanda.ice2@gmail.com>',
+            to: email,
+            subject: "Doctrro - Reset Password",
+            html: `Your password has been reset by the system. Please use <b> ${password} </b> as your new password to login.`
+          })
+          .then( async(result) => {
+
+                const salt = await bcrypt.genSalt(10);
+                const passwordHash = await bcrypt.hash(password, salt);
+                let udata =  await userModel.getUserByEmail( email );
+                const user_arr = {password: passwordHash, salt: salt, id: udata[0].id} 
+
+                await adminModel.resetPassword(user_arr)
+                .then(() => {
+                  res.status(200).json({
+                    status: "1",
+                    data: 'Success'
+                  });
+                })
+                .catch((err) => {
+                  res.status(400).json({
+                    status: 2,
+                    errors: 'Unable to send mail at this moment'
+                  }).end();
+                })
+          }) 
+          .catch((err) => {
+              res.status(400).json({
+                status: 2,
+                errors: 'Unable to send mail at this time'
+              }).end();
+          })
+    },
 }
