@@ -36,7 +36,7 @@ router.route('/speciality/all')
   .get(doctorController.specialityList);
 
 router.route('/add_time_slot')
-  .post(signature,doctorController.authentication,validateBody(schemas.addTimeSlot), validateDbBody.addTimeSlot, doctorController.addTimeSlot);
+  .post(signature,doctorController.authentication,validateBody(schemas.addTimeSlot), doctorController.addTimeSlot);
 
 router.route('/find_add_timeslot')
   .post(signature,doctorController.authentication,validateBody(schemas.addTimeSlot), validateDbBody.addTimeSlot, doctorController.findAddTimeSlot);
@@ -44,8 +44,11 @@ router.route('/find_add_timeslot')
 router.route('/insert_clinic')
   .post(signature,doctorController.authentication,validateBody(schemas.insertClinic), doctorController.insert_clinic);
 
-router.route('/update_practioner')
-  .post(signature,doctorController.authentication, doctorController.update_practioner);
+router.route('/update_clinic')
+  .put(signature,doctorController.authentication,validateBody(schemas.updateClinic),validateDbBody.updateClinic, doctorController.update_clinic);
+
+// router.route('/update_practioner')
+//   .post(signature,doctorController.authentication, doctorController.update_practioner);
 
 router.route('/delete_clinic/:id')
   .delete(signature,doctorController.authentication,validateParam(schemas.addClinic), doctorController.delete_clinic);

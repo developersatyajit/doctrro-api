@@ -17,7 +17,7 @@ module.exports = {
 	 },
 
 	signup: async (req, res, next) => {
-		const {	email } = req.value.body;
+		const {	email, practitioner } = req.value.body;
 
 		let err = {};
 		const isEmailExist = await userModel.emailExists(entities.encode(email));
@@ -31,6 +31,10 @@ module.exports = {
 			}else{
 				err.email = 'Please login to verify your account.'
 			}
+		}
+
+		if(![1,2].includes(practitioner)){
+			err.practitioner = "Invalid medical practitioner";
 		}
 
 		if (module.exports.isObjEmpty(err)) {

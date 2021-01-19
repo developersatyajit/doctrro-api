@@ -52,4 +52,18 @@ module.exports = {
 		    });
 		}); 
 	},
+	getClinicTiming: async ( doc_id, clinic_id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`select * from doctor_timeslot
+					WHERE doc_id=? AND clinic_id=?`, [doc_id, clinic_id])
+		    .then(async (data) => {
+				resolve(data);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in finding clinic');
+				reject(error);
+		    });
+		}); 
+	},
 }

@@ -46,6 +46,23 @@ module.exports = {
 			return res.status(400).json({ 'status' : 2, 'errors' : err});
 		}
 	},
+	updateClinic: async (req, res, next) => {
+
+		const {	id } = req.value.body;
+
+		let err = {};
+		let isOwnClinic = await doctorModel.isClinicAdded(req.user.id, id);
+		
+		if(!isOwnClinic){
+			err.email = "Invalid clinic submitted";
+		}
+
+		if (module.exports.isObjEmpty(err)) {
+			next()
+		} else {
+			return res.status(400).json({ 'status' : 2, 'errors' : err});
+		}
+	},
 	addTimeSlot: async (req, res, next) => {
 
 		const {	id } = req.value.body;

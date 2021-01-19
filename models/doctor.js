@@ -333,11 +333,24 @@ module.exports = {
 		    });
 		}); 
 	},
-	addDoctorChamber: async(doc_id, chamber_id) => {
+	addDoctorChamber: async(doc_id, chamber_id, fees) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("INSERT INTO doctor_chamber SET doc_id = ?, chamber_id=?", [doc_id, chamber_id])
+			db.queryAsync("INSERT INTO doctor_chamber SET doc_id = ?, chamber_id=?, fees=?", [doc_id, chamber_id, fees])
 		    .then(function (data) {
 		    	resolve(data);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in getting email id');
+				reject(error);
+		    });
+		})
+	},
+	updateDoctorFees: async(doc_id, chamber_id, fees) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("UPDATE doctor_chamber SET fees=? WHERE doc_id=? AND chamber_id=?", [fees, doc_id, chamber_id])
+		    .then(function (data) {
+		    	resolve(data.affectedRows);
 		    })
 		    .catch(function (err) {
 				console.log(err)
@@ -352,6 +365,7 @@ module.exports = {
 				SET 
 					clinic_id = ?, 
 					doc_id = ?, 
+					day_of_week=?,
 					morningStart = ?, 
 					morningEnd = ?, 
 					afternoonStart = ?, 
@@ -363,6 +377,7 @@ module.exports = {
 				[
 					post_data.id,
 					doc_id, 
+					post_data.day_of_week,
 					post_data.morningStart, 
 					post_data.morningEnd, 
 					post_data.afternoonStart, 
@@ -434,6 +449,7 @@ module.exports = {
 		const {
           address_1,
           address_2,
+          clinic_type,
           area,
           center_name,
           city,
@@ -453,6 +469,7 @@ module.exports = {
         return new Promise(function(resolve, reject) {
 			db.queryAsync(`INSERT INTO diagnostic SET 
 				center_name = ?,
+				clinic_type=?,
 				area = ?,
 				city = ?,	
 				address_1 = ?,
@@ -468,7 +485,8 @@ module.exports = {
 				marker = ?,
 				location=?
 				`, [
-					center_name, 
+					center_name,
+					clinic_type,
 					area, 
 					city, 
 					address_1, 
@@ -486,6 +504,77 @@ module.exports = {
 				])
 		    .then(function (data) {
 		    	resolve(data.insertId);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in inserting clinic');
+				reject(error);
+		    });
+		})
+
+	},
+	updateClinic: async( post_data) => {
+		const {
+		  id,
+          address_1,
+          address_2,
+          clinic_type,
+          area,
+          center_name,
+          city,
+          contact_1,
+          contact_2,
+          contact_3,
+          country,
+          map,
+          marker,
+          location,
+          landmark,
+          pincode,
+          state
+        } = post_data;
+
+
+        return new Promise(function(resolve, reject) {
+			db.queryAsync(`UPDATE diagnostic SET 
+				center_name = ?,
+				clinic_type=?,
+				area = ?,
+				city = ?,	
+				address_1 = ?,
+				address_2 = ?,
+				landmark = ?,
+				pincode = ?,
+				state = ?,	
+				country = ?,	
+				contact_1 = ?,	
+				contact_2 = ?,	
+				contact_3 = ?,	
+				map = ?,	
+				marker = ?,
+				location=?
+				WHERE id = ?
+				`, [
+					center_name,
+					clinic_type,
+					area, 
+					city, 
+					address_1, 
+					address_2, 
+					landmark, 
+					pincode, 
+					state, 
+					country, 
+					contact_1, 
+					contact_2,
+					contact_3, 
+					`${map.lat},${map.lng}`,
+					`${marker.lat},${marker.lng}`,
+					location,
+					id
+				])
+		    .then(function (data) {
+		    	resolve(data.affectedRows);
 		    })
 		    .catch(function (err) {
 				console.log(err)
@@ -550,6 +639,71 @@ module.exports = {
 				])
 		    .then(function (data) {
 		    	resolve(data);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in inserting clinic timing');
+				reject(error);
+		    });
+		})
+
+	},
+	updateClinicTiming: async(post_data) => {
+		const {
+			id,
+          mon_end_time,
+          mon_start_time,
+          fri_start_time,
+          fri_end_time,
+          sat_end_time,
+          sat_start_time,
+          sun_end_time,
+          sun_start_time,
+          thur_end_time,
+          thur_start_time,
+          tue_end_time,
+          tue_start_time,
+          wed_end_time,
+          wed_start_time
+        } = post_data;
+
+
+        return new Promise(function(resolve, reject) {
+			db.queryAsync(`UPDATE diagnostic_time SET 
+				mon_end_time = ?,
+				mon_start_time = ?,
+				sat_end_time = ?,
+				sat_start_time = ?,
+				sun_end_time = ?,
+				sun_start_time = ?,
+				thur_end_time = ?,
+				thur_start_time = ?,
+				tue_end_time = ?,
+				tue_start_time = ?,
+				wed_end_time = ?,
+				wed_start_time = ?,
+				fri_start_time = ?,
+				fri_end_time = ?
+				WHERE ds_id = ?
+				`, [
+					mon_end_time,
+					mon_start_time,
+					sat_end_time,
+					sat_start_time,
+					sun_end_time,
+					sun_start_time,
+					thur_end_time,
+					thur_start_time,
+					tue_end_time,
+					tue_start_time,
+					wed_end_time,
+					wed_start_time,
+					fri_start_time,
+					fri_end_time,
+					id
+				])
+		    .then(function (data) {
+		    	resolve(data.affectedRows);
 		    })
 		    .catch(function (err) {
 				console.log(err)

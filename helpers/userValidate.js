@@ -38,8 +38,9 @@ module.exports = {
     signup: Joi.object().keys({
       email: Joi.string().required().email().max(100),
       full_name: Joi.string().min(1).max(100).required().regex(/^[a-z][a-z\s\.]*$/i, 'full name'),
-      contact: Joi.string().required().max(20),
+      contact: Joi.number().required().min(10).max(11),
       category_id : Joi.number().required(),
+      practitioner: Joi.number().required(),
       password : Joi.string().required()
     }),
     login: Joi.object().keys({

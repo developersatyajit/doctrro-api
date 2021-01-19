@@ -77,6 +77,18 @@ module.exports = {
 		    });
 		}); 
 	},
+	isMedicalPractitioner: async (id)=> {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("select practioner from login where id = ?", [id])
+		    .then(function (data) {
+		    	resolve(data.length > 0 && data[0].practioner > 0 ? true : false);
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in getting email id');
+				reject(error);
+		    });
+		}); 
+	},
 	signup: async (user_arr)=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync("INSERT INTO login SET ?", [user_arr])

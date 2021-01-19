@@ -5,6 +5,7 @@ const entities = new Entities();
 const dateformat = require('dateformat');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const userModel = require('../models/user');
 
 module.exports = {
   authentication: async (req, res, next) => {
@@ -224,12 +225,12 @@ module.exports = {
       await doctorModel.addChamberTimeslot( req.user.id, req.body )
       .then(async() => {
 
-        const doctor_fees = {
-          fees: req.body.fees,
-          chamber_id: req.body.id,
-          doc_id: req.user.id
-        }
-        await doctorModel.updateFees(doctor_fees);
+        // const doctor_fees = {
+        //   fees: req.body.fees,
+        //   chamber_id: req.body.id,
+        //   doc_id: req.user.id
+        // }
+        // await doctorModel.updateFees(doctor_fees);
 
           await doctorModel.getDoctorChamber( req.user.id )
                 .then( async( chamberlist ) => {
@@ -340,19 +341,91 @@ module.exports = {
       })
   },
   insert_clinic: async(req, res, next) => {
-    console.log('insert cinic')
+
+    const { fees } = req.body
+
     await doctorModel.insertClinic( req.body )
       .then(async( ID ) => {
 
         await doctorModel.insertClinicTiming( ID, req.body )
         .then(async () => {
 
-          await doctorModel.addDoctorChamber( req.user.id, ID )
-          .then(() => {
-                res.status(200).json({
-                    status: "1",
-                    id: ID
-                });
+          await userModel.isMedicalPractitioner(req.user.id)
+          .then( async ( isPractitioner ) => {
+              let doctor_fees = 0;
+              if(isPractitioner){
+                doctor_fees = fees
+              }
+
+                await doctorModel.addDoctorChamber( req.user.id, ID, doctor_fees )
+                .then(() => {
+                    res.status(200).json({
+                        status: "1",
+                        id: ID
+                    });
+                })
+                .catch(err => {
+                  console.log('error in query', err);
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end();
+                })
+          })
+          .catch(err => {
+            console.log('error in query', err);
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end();
+          })
+
+        })
+        .catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+      }).catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+  update_clinic: async(req, res, next) => {
+
+    const { fees } = req.body
+
+    await doctorModel.updateClinic( req.body )
+      .then(async() => {
+
+        await doctorModel.updateClinicTiming( req.body )
+        .then(async () => {
+
+          await userModel.isMedicalPractitioner(req.user.id)
+          .then( async ( isPractitioner ) => {
+              let doctor_fees = 0;
+              if(isPractitioner){
+                doctor_fees = fees
+              }
+
+                await doctorModel.updateDoctorFees( req.user.id, req.body.id, doctor_fees )
+                .then(() => {
+                    res.status(200).json({
+                        status: "1"
+                    });
+                })
+                .catch(err => {
+                  console.log('error in query', err);
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end();
+                })
           })
           .catch(err => {
             console.log('error in query', err);

@@ -48,6 +48,7 @@ module.exports = {
 		experience: Joi.number().required(),
     }),
     addTimeSlot: Joi.object().keys({
+      day_of_week: Joi.number().required(),
     	morningStart: Joi.string().required(),
     	morningEnd: Joi.string().required(),
     	afternoonStart: Joi.string().required(),
@@ -56,8 +57,7 @@ module.exports = {
     	eveningEnd: Joi.string().required(),
     	nightStart: Joi.string().required(),
     	nightEnd: Joi.string().required(),
-      id: Joi.number().required(),
-      fees: Joi.number().required()
+      id: Joi.number().required()
     }),
     addClinic: Joi.object().keys({
       id: Joi.number().required()
@@ -87,6 +87,47 @@ module.exports = {
       	lat : Joi.number().required(),
       	lng : Joi.number().required()
       }),
+      fees: Joi.number().required().allow("").optional(),
+      location: Joi.string().required(),
+      mon_end_time: Joi.string().required(),
+      mon_start_time: Joi.string().required(),
+      pincode: Joi.number().required(),
+      sat_end_time: Joi.string().required(),
+      sat_start_time: Joi.string().required(),
+      state: Joi.string().required().allow("").optional(),
+      sun_end_time: Joi.string().required(),
+      sun_start_time: Joi.string().required(),
+      thur_end_time: Joi.string().required(),
+      thur_start_time: Joi.string().required(),
+      tue_end_time: Joi.string().required(),
+      tue_start_time: Joi.string().required(),
+      wed_end_time: Joi.string().required(),
+      wed_start_time: Joi.string().required()
+    }),
+    updateClinic: Joi.object().keys({
+      id: Joi.number().required(),
+      address_1: Joi.string().required(),
+      address_2: Joi.string().required(),
+      area: Joi.string().required().allow("").optional(),
+      clinic_type: Joi.number().required(),
+      center_name: Joi.string().required(),
+      city: Joi.string().required().allow("").optional(),
+      contact_1: Joi.number().required(),
+      contact_2: Joi.number().required().allow("").optional(),
+      contact_3: Joi.number().required().allow("").optional(),
+      country: Joi.string().required().allow("").optional(),
+      fri_end_time: Joi.string().required(),
+      fri_start_time: Joi.string().required(),
+      landmark: Joi.string().required(),
+      map: Joi.object().keys({
+        lat : Joi.number().required(),
+        lng : Joi.number().required()
+      }),
+      marker: Joi.object().keys({
+        lat : Joi.number().required(),
+        lng : Joi.number().required()
+      }),
+      fees: Joi.number().required().allow("").optional(),
       location: Joi.string().required(),
       mon_end_time: Joi.string().required(),
       mon_start_time: Joi.string().required(),

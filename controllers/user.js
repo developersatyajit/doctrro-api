@@ -59,7 +59,7 @@ module.exports = {
 },
   signup: async(req, res, next) => {
 
-    const {full_name, email, contact, category_id, password} = req.body
+    const {full_name, email, contact, category_id, practitioner, password} = req.body
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
@@ -71,6 +71,7 @@ module.exports = {
       password : passwordHash, 
       salt: salt,
       category : category_id,
+      practioner: practitioner,
       add_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
       update_date	 : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
     }
@@ -99,6 +100,9 @@ module.exports = {
                 This OTP is confidential. Please do not share it with anyone.  ` + "\n" + `
                  ` + "\n" + `
               Regards, Doctrro.
+
+              Dear user, Verification OTP for your mobile number ${contact} for website ${website} is ${otp}. Validity of OTP is {#var#}. This OTP is confidential. Please do not share it with anyone.
+Regards, Doctrro.
             ` 
 			    },
 			  	json: true 
@@ -107,37 +111,37 @@ module.exports = {
 			request(options, async function (error, response, body) {
 
 				  if (error) {
-              res.status(400).json({
-                  status: 3,
-                  message: 'Sorry!!! we are unable to send sms right now'
-              }).end();
+		              res.status(400).json({
+		                  status: 3,
+		                  message: 'Sorry!!! we are unable to send sms right now'
+		              }).end();
 				  }
 
 			  	if(body.return){
 
-            await userModel.signup(db_arr)
-              .then(async function (uid) {
+		            await userModel.signup(db_arr)
+		              .then(async function (uid) {
 
-                  await userModel.updateOTP(uid, otp, body.request_id)
-                  .then(() => {
-                        res.status(200).json({
-                            status: "1",
-                            id: body.request_id
-                        });
-                  })
-                  .catch(err => {
-                      res.status(400).json({
-                        status: 3,
-                        message: 'Something went wrong'
-                      }).end();
-                  })
-              })
-              .catch(err => {
-                      res.status(400).json({
-                        status: 3,
-                        message: 'Something went wrong'
-                      }).end();
-              })
+		                  await userModel.updateOTP(uid, otp, body.request_id)
+		                  .then(() => {
+		                        res.status(200).json({
+		                            status: "1",
+		                            id: body.request_id
+		                        });
+		                  })
+		                  .catch(err => {
+		                      res.status(400).json({
+		                        status: 3,
+		                        message: 'Something went wrong'
+		                      }).end();
+		                  })
+		              })
+		              .catch(err => {
+		                      res.status(400).json({
+		                        status: 3,
+		                        message: 'Something went wrong'
+		                      }).end();
+		              })
 
 			  	}else{
 			  		res.status(400).json({
