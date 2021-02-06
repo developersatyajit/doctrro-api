@@ -48,15 +48,39 @@ module.exports = {
 		experience: Joi.number().required(),
     }),
     addTimeSlot: Joi.object().keys({
+
+      mslot: Joi.array().items(
+        Joi.object().keys({
+          time : Joi.string().required(),
+          disable: Joi.boolean().required()
+        })
+      ).allow("").optional(),
+
+      aslot: Joi.array().items(
+        Joi.object().keys({
+          time : Joi.string().required(),
+          disable: Joi.boolean().required()
+        })
+      ).allow("").optional(),
+
+      eslot: Joi.array().items(
+        Joi.object().keys({
+          time : Joi.string().required(),
+          disable: Joi.boolean().required()
+        })
+      ).allow("").optional(),
+
+      nslot: Joi.array().items(
+        Joi.object().keys({
+          time : Joi.string().required(),
+          disable: Joi.boolean().required()
+        })
+      ).allow("").optional(),
+
       day_of_week: Joi.number().required(),
-    	morningStart: Joi.string().required(),
-    	morningEnd: Joi.string().required(),
-    	afternoonStart: Joi.string().required(),
-    	afternoonEnd: Joi.string().required(),
-    	eveningStart: Joi.string().required(),
-    	eveningEnd: Joi.string().required(),
-    	nightStart: Joi.string().required(),
-    	nightEnd: Joi.string().required(),
+      start : Joi.string().required(),
+      end : Joi.string().required(),
+      interval: Joi.number().required(),
       id: Joi.number().required()
     }),
     addClinic: Joi.object().keys({

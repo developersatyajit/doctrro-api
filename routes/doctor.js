@@ -56,6 +56,11 @@ router.route('/delete_clinic/:id')
 router.route('/add_education')
   .post(signature,doctorController.authentication, doctorController.add_education);
 
+
+router.route('/update_education')
+  .put(signature,doctorController.authentication, doctorController.update_education);
+  
+
 router.route('/delete_education/:id')
   .delete(signature,doctorController.authentication,validateParam(schemas.addClinic), doctorController.delete_education);
 

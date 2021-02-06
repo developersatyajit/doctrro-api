@@ -579,6 +579,31 @@ module.exports = {
         }).end();
       })
   },
+
+  update_education: async(req, res, next) => {
+    const { pass_year, university, degree, id } = req.body;
+    const ed = {
+      id: id,
+      doc_id: req.user.id,
+      pass_year: pass_year,
+      university: university,
+      degree: degree,
+      update_date  : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+    }
+    await doctorModel.updateEducation( ed )
+      .then(async( ID ) => {
+        res.status(200).json({
+            status: "1"
+        });
+      }).catch(err => {
+        console.log(err)
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+
   photoid: async(req, res, next) => {
 
     try {

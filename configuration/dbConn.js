@@ -13,10 +13,6 @@ const connection = mysql.createConnection({
 
 const db = bluebird.promisifyAll(connection);
 
-// db.queryAsync("SELECT * FROM news").then(function(rows){
-// 	console.log(rows);
-// });
-
 // open the MySQL connection
 connection.connect(error => {
   if (error) {

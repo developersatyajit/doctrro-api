@@ -361,40 +361,90 @@ module.exports = {
 	},
 	addChamberTimeslot: async(doc_id, post_data) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync(`INSERT INTO doctor_timeslot
-				SET 
-					clinic_id = ?, 
-					doc_id = ?, 
-					day_of_week=?,
-					morningStart = ?, 
-					morningEnd = ?, 
-					afternoonStart = ?, 
-					afternoonEnd =?, 
-					eveningStart =?, 
-					eveningEnd = ?, 
-					nightStart = ?, 
-					nightEnd = ?`, 
-				[
-					post_data.id,
-					doc_id, 
-					post_data.day_of_week,
-					post_data.morningStart, 
-					post_data.morningEnd, 
-					post_data.afternoonStart, 
-					post_data.afternoonEnd, 
-					post_data.eveningStart, 
-					post_data.eveningEnd, 
-					post_data.nightStart, 
-					post_data.nightEnd
-				])
-		    .then(function (data) {
-		    	resolve(data);
-		    })
-		    .catch(function (err) {
-				console.log(err)
-				var error = new Error('Error in getting email id');
-				reject(error);
-		    });
+
+			let mvalues = [];
+			post_data.mslot.map( mitem => {
+				mvalues.push(
+					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'M', 
+					mitem.time, mitem.disable === true ? 1 : 0]
+				)
+			})
+
+
+			if(mvalues.length > 0){
+				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [mvalues])
+			    .then(function (data) {
+			    	resolve(data);
+			    })
+			    .catch(function (err) {
+					console.log(err)
+					var error = new Error('Error in getting email id');
+					reject(error);
+			    });
+			}
+			// ==========================
+
+			let avalues = [];
+			post_data.aslot.map( aitem => {
+				avalues.push(
+					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'A', aitem.time, aitem.disable === true ? 1 : 0]
+				)
+			})
+
+
+			if(avalues.length > 0){
+				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [avalues])
+			    .then(function (data) {
+			    	resolve(data);
+			    })
+			    .catch(function (err) {
+					console.log(err)
+					var error = new Error('Error in getting email id');
+					reject(error);
+			    });
+			}
+			// =========================
+
+			let evalues = [];
+			post_data.eslot.map( eitem => {
+				evalues.push(
+					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'E', eitem.time, eitem.disable === true ? 1 : 0]
+				)
+			})
+
+			if(evalues.length > 0){
+				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [evalues])
+			    .then(function (data) {
+			    	resolve(data);
+			    })
+			    .catch(function (err) {
+					console.log(err)
+					var error = new Error('Error in getting email id');
+					reject(error);
+			    });
+			}
+			// ========================
+
+			let nvalues = [];
+			post_data.nslot.map( nitem => {
+				nvalues.push(
+					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'N', nitem.time, nitem.disable === true ? 1 : 0]
+				)
+			})
+
+			if(nvalues.length > 0){
+
+				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [nvalues])
+			    .then(function (data) {
+			    	resolve(data);
+			    })
+			    .catch(function (err) {
+					console.log(err)
+					var error = new Error('Error in getting email id');
+					reject(error);
+			    });
+			}
+
 		})
 	},
 	updateFees: async( data ) => {
@@ -748,6 +798,36 @@ module.exports = {
 				])
 		    .then(function (data) {
 		    	resolve(data.insertId);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in inserting education');
+				reject(error);
+		    });
+		});
+	},
+
+	updateEducation: async(postData) => {
+
+		const { id, doc_id, degree, university, pass_year, update_date } = postData;
+
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`UPDATE doctor_education SET 
+				degree = ?,
+				university = ?,
+				pass_year = ?,
+				update_date = ?
+				WHERE id = ? AND doc_id = ?
+				`, [
+					degree,
+					university,
+					pass_year,
+					update_date,
+					id,
+					doc_id
+				])
+		    .then(function (data) {
+		    	resolve(data.affectedRows);
 		    })
 		    .catch(function (err) {
 				console.log(err)
