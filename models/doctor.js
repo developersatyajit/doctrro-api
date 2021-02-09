@@ -362,88 +362,108 @@ module.exports = {
 	addChamberTimeslot: async(doc_id, post_data) => {
 		return new Promise(function(resolve, reject) {
 
-			let mvalues = [];
-			post_data.mslot.map( mitem => {
-				mvalues.push(
-					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'M', 
-					mitem.time, mitem.disable === true ? 1 : 0]
-				)
-			})
+			db.queryAsync(`INSERT INTO doctor_timeslot
+				SET clinic_id=?, 
+					doc_id=?, 
+					day_of_week=?,
+					start=?, 
+					end=?, 
+					duration=?`, [post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval])
+		    .then(function (data) {
+
+		    	let timeslot_id = data.insertId
+		    	
+		    	// morning slot
+		    	let mvalues = [];
+				post_data.mslot.map( mitem => {
+					mvalues.push(
+						[timeslot_id, 'M', mitem.time, mitem.disable === true ? 0 : 1]
+					)
+				})
+
+				if(mvalues.length > 0){
+					db.queryAsync(`INSERT INTO available_slot(timeslot_id, slot, schedule, status) VALUES ?`, [mvalues])
+				    .then(function (morn) {
+				    	resolve(morn);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in getting email id');
+						reject(error);
+				    });
+				}
+		    	//====
+
+		    	// afternoon slot
+		    	let avalues = [];
+				post_data.aslot.map( aitem => {
+					avalues.push(
+						[timeslot_id, 'A', aitem.time, aitem.disable === true ? 0 : 1]
+					)
+				})
 
 
-			if(mvalues.length > 0){
-				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [mvalues])
-			    .then(function (data) {
-			    	resolve(data);
-			    })
-			    .catch(function (err) {
-					console.log(err)
-					var error = new Error('Error in getting email id');
-					reject(error);
-			    });
-			}
-			// ==========================
+				if(avalues.length > 0){
+					db.queryAsync(`INSERT INTO available_slot(timeslot_id, slot, schedule, status) VALUES ?`, [avalues])
+				    .then(function (noon) {
+				    	resolve(noon);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in getting email id');
+						reject(error);
+				    });
+				}
+		    	// end
 
-			let avalues = [];
-			post_data.aslot.map( aitem => {
-				avalues.push(
-					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'A', aitem.time, aitem.disable === true ? 1 : 0]
-				)
-			})
+		    	//evening slot
+		    	let evalues = [];
+				post_data.eslot.map( eitem => {
+					evalues.push(
+						[timeslot_id, 'E', eitem.time, eitem.disable === true ? 0 : 1]
+					)
+				})
 
+				if(evalues.length > 0){
+					db.queryAsync(`INSERT INTO available_slot(timeslot_id, slot, schedule, status) VALUES ?`, [evalues])
+				    .then(function (eve) {
+				    	resolve(eve);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in getting email id');
+						reject(error);
+				    });
+				}
+		    	//end
 
-			if(avalues.length > 0){
-				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [avalues])
-			    .then(function (data) {
-			    	resolve(data);
-			    })
-			    .catch(function (err) {
-					console.log(err)
-					var error = new Error('Error in getting email id');
-					reject(error);
-			    });
-			}
-			// =========================
+		    	//night slot
+		    	let nvalues = [];
+				post_data.nslot.map( nitem => {
+					nvalues.push(
+						[timeslot_id, 'N', nitem.time, nitem.disable === true ? 0 : 1]
+					)
+				})
 
-			let evalues = [];
-			post_data.eslot.map( eitem => {
-				evalues.push(
-					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'E', eitem.time, eitem.disable === true ? 1 : 0]
-				)
-			})
+				if(nvalues.length > 0){
+					db.queryAsync(`INSERT INTO available_slot(timeslot_id, slot, schedule, status) VALUES ?`, [nvalues])
+				    .then(function (nt) {
+				    	resolve(nt);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in getting email id');
+						reject(error);
+				    });
+				}
+		    	//end
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in getting email id');
+				reject(error);
+		    });
 
-			if(evalues.length > 0){
-				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [evalues])
-			    .then(function (data) {
-			    	resolve(data);
-			    })
-			    .catch(function (err) {
-					console.log(err)
-					var error = new Error('Error in getting email id');
-					reject(error);
-			    });
-			}
-			// ========================
-
-			let nvalues = [];
-			post_data.nslot.map( nitem => {
-				nvalues.push(
-					[post_data.id, doc_id, post_data.day_of_week, post_data.start, post_data.end, post_data.interval, 'N', nitem.time, nitem.disable === true ? 1 : 0]
-				)
-			})
-
-			if(nvalues.length > 0){
-
-				db.queryAsync(`INSERT INTO doctor_timeslot(clinic_id, doc_id, day_of_week, start, end, duration, slot, schedule, status) VALUES ?`, [nvalues])
-			    .then(function (data) {
-			    	resolve(data);
-			    })
-			    .catch(function (err) {
-					console.log(err)
-					var error = new Error('Error in getting email id');
-					reject(error);
-			    });
-			}
 
 		})
 	},

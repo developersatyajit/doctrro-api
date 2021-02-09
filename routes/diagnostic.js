@@ -24,7 +24,7 @@ router.route('/find/:keyword')
 	.get(signature, dgController.authentication,dgController.find)
 
 router.route('/:id')
-	.get(signature, dgController.authentication, dgController.getClinic)
+	.get(signature, dgController.authentication, dgController.getTimeslot)
 
 // router.route('/signup')
 //   .post(validateBody(schemas.signup), validateDbBody.signup, userController.signup)

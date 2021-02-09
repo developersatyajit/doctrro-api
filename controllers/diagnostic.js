@@ -52,20 +52,44 @@ module.exports = {
           }).end();
         })
   },
-  getClinic: async (req, res, next) => {
+  getTimeslot: async (req, res, next) => {
       const id = req.params.id
       await dgModel.getClinicData(id)
         .then(async function (data) {
 
           await dgModel.getClinicTiming( req.user.id, id )
-          .then(( rows ) => {
+          .then( async( rows ) => {
 
-              data = {...data[0], timeslot: rows}
+            if(rows.length > 0){
 
-              res.status(200).json({
-                status: "1",
-                data: data
-              });
+                for (let i = 0; i < rows.length; i++) {
+
+                  await dgModel.getAvailableSlot( rows[i].id )
+                    .then(( col ) => {
+                        rows[i].available_slot = col;
+                    })
+                    .catch((err) => {
+                      console.log('err1', err);
+                        res.status(400).json({
+                          status: 3,
+                          message: 'Something went wrong'
+                        }).end();
+                    })
+                }
+
+                data = {...data[0], schedule: rows }
+
+                res.status(200).json({
+                    status: "1",
+                    data: data
+                });
+
+            }else{
+                res.status(200).json({
+                    status: "1",
+                    data: data[0]
+                });
+            }            
           })
           .catch(( err ) => {
               console.log('error in query', err);

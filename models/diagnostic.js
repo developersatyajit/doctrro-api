@@ -55,13 +55,27 @@ module.exports = {
 	getClinicTiming: async ( doc_id, clinic_id )=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`select * from doctor_timeslot
-					WHERE doc_id=? AND clinic_id=?`, [doc_id, clinic_id])
+					WHERE doc_id=? AND clinic_id=? ORDER BY day_of_week ASC`, [doc_id, clinic_id])
 		    .then(async (data) => {
 				resolve(data);
 		    })
 		    .catch( (err) => {
 				console.log('Model error', err)
-				var error = new Error('Error in finding clinic');
+				var error = new Error('Error in getClinicTiming');
+				reject(error);
+		    });
+		}); 
+	},
+	getAvailableSlot: async ( timeslot_id )=> {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`select * from available_slot
+					WHERE timeslot_id=?`, [timeslot_id])
+		    .then(async (data) => {
+				resolve(data);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicTiming');
 				reject(error);
 		    });
 		}); 

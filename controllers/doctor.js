@@ -225,41 +225,34 @@ module.exports = {
       await doctorModel.addChamberTimeslot( req.user.id, req.body )
       .then(async() => {
 
-        // const doctor_fees = {
-        //   fees: req.body.fees,
-        //   chamber_id: req.body.id,
-        //   doc_id: req.user.id
-        // }
-        // await doctorModel.updateFees(doctor_fees);
+	  		await doctorModel.getDoctorChamber( req.user.id )
+	        .then( async( chamberlist ) => {
 
-          await doctorModel.getDoctorChamber( req.user.id )
-                .then( async( chamberlist ) => {
+	          await doctorModel.countDoctorChamber( req.user.id )
+	          .then(( counter ) => {
 
-                  await doctorModel.countDoctorChamber( req.user.id )
-                  .then(( counter ) => {
-
-                      res.status(200).json({
-                        status: "1",
-                        data: chamberlist,
-                        total_clinic: counter
-                      });
-                  })
-                  .catch(err => {
-                    console.log('error in query', err);
-                    res.status(400).json({
-                      status: 3,
-                      message: 'Something went wrong'
-                    }).end();
-                  })
-                  
-                })
-                .catch(err => {
-                  console.log('error in query', err);
-                  res.status(400).json({
-                    status: 3,
-                    message: 'Something went wrong'
-                  }).end();
-                })
+	              res.status(200).json({
+	                status: "1",
+	                data: chamberlist,
+	                total_clinic: counter
+	              });
+	          })
+	          .catch(err => {
+	            console.log('error in query', err);
+	            res.status(400).json({
+	              status: 3,
+	              message: 'Something went wrong'
+	            }).end();
+	          })
+	          
+	        })
+	        .catch(err => {
+	          console.log('error in query', err);
+	          res.status(400).json({
+	            status: 3,
+	            message: 'Something went wrong'
+	          }).end();
+	        })
       })
       .catch(err => {
         console.log('error in query', err);
