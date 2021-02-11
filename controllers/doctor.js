@@ -76,61 +76,73 @@ module.exports = {
 
             data = {...data, speciality};
 
-              await doctorModel.getDoctorEducation(req.user.id)
-              .then(async (ed) => {
-                data = {...data, ed};
+            await doctorModel.getSpecialityName(speciality.split(","))
+            .then(async (spname) => {
 
-                  await doctorModel.getDoctorChamber(req.user.id)
-                  .then(async (ch) => {
+            	data = {...data, spname};
 
-                    data = {...data, ch};
+		              await doctorModel.getDoctorEducation(req.user.id)
+		              .then(async (ed) => {
+		                data = {...data, ed};
 
-                    await doctorModel.countDoctorChamber(req.user.id)
-                    .then(async (counter) => {
-                      data = {...data, total_clinic: counter};
+		                  await doctorModel.getDoctorChamber(req.user.id)
+		                  .then(async (ch) => {
 
-                      await doctorModel.getDoctorDocument(req.user.id)
-                      .then(async (doc) => {
-                        data = {...data, doc};
+		                    data = {...data, ch};
 
-                        res.status(200).json({
-                          status: "1",
-                          data: data
-                        });
-                      })
-                      .catch(err => {
+		                    await doctorModel.countDoctorChamber(req.user.id)
+		                    .then(async (counter) => {
+		                      data = {...data, total_clinic: counter};
 
-                        res.status(400).json({
-                          status: 3,
-                          message: 'Something went wrong'
-                        }).end();
-                      })
+		                      await doctorModel.getDoctorDocument(req.user.id)
+		                      .then(async (doc) => {
+		                        data = {...data, doc};
 
-                    })
-                    .catch(err => {
-                      res.status(400).json({
-                        status: 3,
-                        message: 'Something went wrong'
-                      }).end();
-                    })
-                      
-                    
-                  })
-                  .catch(err => {
-                    res.status(400).json({
-                      status: 3,
-                      message: 'Something went wrong'
-                    }).end();
-                  })
-                
+		                        res.status(200).json({
+		                          status: "1",
+		                          data: data
+		                        });
+		                      })
+		                      .catch(err => {
 
-              })
-              .catch(err => {
-                res.status(400).json({
-                  status: 3,
-                  message: 'Something went wrong'
-                }).end();
-              })
+		                        res.status(400).json({
+		                          status: 3,
+		                          message: 'Something went wrong'
+		                        }).end();
+		                      })
+
+		                    })
+		                    .catch(err => {
+		                      res.status(400).json({
+		                        status: 3,
+		                        message: 'Something went wrong'
+		                      }).end();
+		                    })
+		                      
+		                    
+		                  })
+		                  .catch(err => {
+		                    res.status(400).json({
+		                      status: 3,
+		                      message: 'Something went wrong'
+		                    }).end();
+		                  })
+		                
+
+		              })
+		              .catch(err => {
+		                res.status(400).json({
+		                  status: 3,
+		                  message: 'Something went wrong'
+		                }).end();
+		              })
+		    })
+            .catch(err => {
+	              res.status(400).json({
+	                status: 3,
+	                message: 'Something went wrong'
+	              }).end();
+	        })
 
           })
           .catch(err => {

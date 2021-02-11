@@ -44,5 +44,7 @@ router.route('/submit_otp')
 router.route('/otp_login')
   .post(validateBody(schemas.submit_otp), userController.otp_login)
 
+router.route('/isvalidtoken')
+  .post(signature, userController.authentication, userController.checkToken)
 
 module.exports = router;

@@ -24,6 +24,21 @@ module.exports = {
     }
   },
 
+  checkToken: async (req, res, next) => {
+    if (req.user.id > 0 && req.user.role != null) {
+        res.status(200).json({
+          status: "1",
+          data: 'SUCCESS'
+        });
+    } else {
+        let return_err = {
+          status: 5,
+          message: "Unauthorized"
+        };
+        return res.status(401).json({return_err});
+    }
+  },
+
   fetch_all_role: async (req, res, next) => {
       await userModel.fetchAllRole()
         .then(async function (data) {
