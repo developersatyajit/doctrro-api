@@ -377,7 +377,7 @@ module.exports = {
 		    	let mvalues = [];
 				post_data.mslot.map( mitem => {
 					mvalues.push(
-						[timeslot_id, 'M', mitem.time, mitem.disable === true ? 0 : 1]
+						[timeslot_id, 'M', mitem.time, mitem.disable === true ? 1 : 0]
 					)
 				})
 
@@ -398,7 +398,7 @@ module.exports = {
 		    	let avalues = [];
 				post_data.aslot.map( aitem => {
 					avalues.push(
-						[timeslot_id, 'A', aitem.time, aitem.disable === true ? 0 : 1]
+						[timeslot_id, 'A', aitem.time, aitem.disable === true ? 1 : 0]
 					)
 				})
 
@@ -420,7 +420,7 @@ module.exports = {
 		    	let evalues = [];
 				post_data.eslot.map( eitem => {
 					evalues.push(
-						[timeslot_id, 'E', eitem.time, eitem.disable === true ? 0 : 1]
+						[timeslot_id, 'E', eitem.time, eitem.disable === true ? 1 : 0]
 					)
 				})
 
@@ -441,7 +441,7 @@ module.exports = {
 		    	let nvalues = [];
 				post_data.nslot.map( nitem => {
 					nvalues.push(
-						[timeslot_id, 'N', nitem.time, nitem.disable === true ? 0 : 1]
+						[timeslot_id, 'N', nitem.time, nitem.disable === true ? 1 : 0]
 					)
 				})
 

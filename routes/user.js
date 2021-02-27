@@ -39,7 +39,7 @@ router.route('/reset_password')
   .post(signature, userController.authentication, validateBody(schemas.reset_password), userController.reset_password)
 
 router.route('/submit_otp')
-  .post(validateBody(schemas.submit_otp), userController.submit_otp)
+  .post(validateBody(schemas.submit_otp), userController.otp_signup)
 
 router.route('/otp_login')
   .post(validateBody(schemas.submit_otp), userController.otp_login)

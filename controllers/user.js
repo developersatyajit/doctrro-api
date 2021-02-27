@@ -105,22 +105,14 @@ module.exports = {
 			    },
 			  	body: 
 			   	{
+            message : "110735",
+            variables_values : `${full_name}|${contact}|${website}|${otp}`,
+            flash : 0,
+            numbers : contact,
 			   		sender_id 	: process.env.SMS_SENDER_ID,
-			    	language 	: process.env.SMS_LANGUAGE,
-			    	route 		: process.env.SMS_ROUTE,
-			    	numbers 	: contact,
-			    	message 	: `
-              Dear user, `+"\n"+`
-                Verification OTP for your mobile number ${contact} for website ${website} is ${otp}.`+"\n"+`
-                This OTP is confidential. Please do not share it with anyone.  ` + "\n" + `
-                 ` + "\n" + `
-              Regards, Doctrro.
-
-              Dear user, Verification OTP for your mobile number ${contact} for website ${website} is ${otp}. Validity of OTP is {#var#}. This OTP is confidential. Please do not share it with anyone.
-Regards, Doctrro.
-            ` 
+			    	route 		: process.env.SMS_ROUTE
 			    },
-			  	json: true 
+			  	json: true
 			}
 
 			request(options, async function (error, response, body) {
@@ -202,7 +194,7 @@ Regards, Doctrro.
           }).end();
         })
   },
-  submit_otp: async (req, res, next) => {
+  otp_signup: async (req, res, next) => {
 
   		const {otp, id} = req.body;
 
@@ -210,15 +202,31 @@ Regards, Doctrro.
 	      .then(async function (data) {
 
 	      	if(data === 'FAILURE'){
+            
             res.status(400).json({
               status: 2,
               errors: {otp: 'Invalid otp submitted'} 
             }).end();
+
 	      	}else{
-            res.status(200).json({
-              status: "1",
-              message: 'Your account has been created successfully. Kindly login to complete your profile.'
-            }).end();
+
+            // res.status(200).json({
+            //   status: "1",
+            //   message: 'Your account has been created successfully. Kindly login to complete your profile.'
+            // }).end();
+
+              let token = JWT.sign({
+                iss: 'Doctrro',
+                sub: data.id,
+                email: data.email,
+                role: data.role
+              }, config.jwt.secret, {expiresIn: '2460s'});  
+
+
+              res.status(200).json({
+                status: "1",
+                token: token
+              });
 	      	}
 	        
 	      }).catch(err => {
@@ -239,7 +247,6 @@ Regards, Doctrro.
   login: async (req, res, next) => {
       if(req.user.id > 0){
 
-
         if(req.user.send_otp){
 
             const otp = await module.exports.otp_generator();
@@ -256,19 +263,14 @@ Regards, Doctrro.
                   },
                   body: 
                   {
+                    message : "110735",
+                    variables_values : `${req.user.full_name}|${req.user.contact}|${website}|${otp}`,
+                    flash : 0,
+                    numbers : req.user.contact,
                     sender_id   : process.env.SMS_SENDER_ID,
-                    language  : process.env.SMS_LANGUAGE,
-                    route     : process.env.SMS_ROUTE,
-                    numbers   : req.user.contact,
-                    message   : `
-                      Dear ${req.user.full_name}, `+"\n"+`
-                        Verification OTP for your mobile number ${req.user.contact} for website ${website} is ${otp}.`+"\n"+`
-                        This OTP is confidential. Please do not share it with anyone.  ` + "\n" + `
-                         ` + "\n" + `
-                      Regards, Doctrro.
-                    ` 
+                    route     : process.env.SMS_ROUTE
                   },
-                  json: true 
+                  json: true
               }
 
               request(options, async function (error, response, body) {

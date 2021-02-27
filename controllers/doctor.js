@@ -72,14 +72,11 @@ module.exports = {
           }
 
           await doctorModel.getDoctorSpeciality(req.user.id)
-          .then(async (speciality) => {
+          .then(async (spec) => {
 
-            data = {...data, speciality};
+            data = {...data, speciality:spec};
 
-            await doctorModel.getSpecialityName(speciality.split(","))
-            .then(async (spname) => {
-
-            	data = {...data, spname};
+            	//data = {...data, spname};
 
 		              await doctorModel.getDoctorEducation(req.user.id)
 		              .then(async (ed) => {
@@ -98,13 +95,26 @@ module.exports = {
 		                      .then(async (doc) => {
 		                        data = {...data, doc};
 
+                            if(spec){
+                              await doctorModel.getSpecialityName(spec.split(","))
+                              .then((spname) => {
+                                data = {...data, spname};
+                              })
+                              .catch((err) => {
+                                  console.log( err)
+                                  res.status(400).json({
+                                    status: 3,
+                                    message: 'Something went wrong'
+                                  }).end();
+                              })
+                            }
+
 		                        res.status(200).json({
 		                          status: "1",
 		                          data: data
 		                        });
 		                      })
 		                      .catch(err => {
-
 		                        res.status(400).json({
 		                          status: 3,
 		                          message: 'Something went wrong'
@@ -136,16 +146,11 @@ module.exports = {
 		                  message: 'Something went wrong'
 		                }).end();
 		              })
-		    })
-            .catch(err => {
-	              res.status(400).json({
-	                status: 3,
-	                message: 'Something went wrong'
-	              }).end();
-	        })
+		       
 
           })
           .catch(err => {
+            console.log(err)
             res.status(400).json({
               status: 3,
               message: 'Something went wrong'
@@ -232,6 +237,49 @@ module.exports = {
         }).end();
       })
   },
+  updateTimeSlot: async (req, res, next) => {
+
+      await doctorModel.addChamberTimeslot( req.user.id, req.body )
+      .then(async() => {
+
+        await doctorModel.getDoctorChamber( req.user.id )
+          .then( async( chamberlist ) => {
+
+            await doctorModel.countDoctorChamber( req.user.id )
+            .then(( counter ) => {
+
+                res.status(200).json({
+                  status: "1",
+                  data: chamberlist,
+                  total_clinic: counter
+                });
+            })
+            .catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+            
+          })
+          .catch(err => {
+            console.log('error in query', err);
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end();
+          })
+      })
+      .catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+
   addTimeSlot: async (req, res, next) => {
 
       await doctorModel.addChamberTimeslot( req.user.id, req.body )

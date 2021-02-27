@@ -41,6 +41,9 @@ router.route('/add_time_slot')
 router.route('/find_add_timeslot')
   .post(signature,doctorController.authentication,validateBody(schemas.addTimeSlot), validateDbBody.addTimeSlot, doctorController.findAddTimeSlot);
 
+// router.post('/update_timeslot')
+//   .post(signature,doctorController.authentication,validateBody(schemas.updateTimeSlot), doctorController.updateTimeSlot);
+
 router.route('/insert_clinic')
   .post(signature,doctorController.authentication,validateBody(schemas.insertClinic), doctorController.insert_clinic);
 
