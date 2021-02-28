@@ -322,6 +322,50 @@ module.exports = {
         }).end();
       })
   },
+
+  updateTimeSlot: async (req, res, next) => {
+
+      await doctorModel.updateChamberTimeslot( req.body )
+      .then(async() => {
+
+        await doctorModel.getDoctorChamber( req.user.id )
+          .then( async( chamberlist ) => {
+
+            await doctorModel.countDoctorChamber( req.user.id )
+            .then(( counter ) => {
+
+                res.status(200).json({
+                  status: "1",
+                  data: chamberlist,
+                  total_clinic: counter
+                });
+            })
+            .catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+            
+          })
+          .catch(err => {
+            console.log('error in query', err);
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end();
+          })
+      })
+      .catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+
   findAddTimeSlot: async (req, res, next) => {
 
       await doctorModel.isClinicAdded( req.user.id, req.body.id )

@@ -86,6 +86,7 @@ module.exports = {
     updateTimeSlot: Joi.object().keys({
       mslot: Joi.array().items(
         Joi.object().keys({
+          id: Joi.number().required(),
           time : Joi.string().required(),
           disable: Joi.boolean().required()
         })
@@ -93,6 +94,7 @@ module.exports = {
 
       aslot: Joi.array().items(
         Joi.object().keys({
+          id: Joi.number().required(),
           time : Joi.string().required(),
           disable: Joi.boolean().required()
         })
@@ -100,6 +102,7 @@ module.exports = {
 
       eslot: Joi.array().items(
         Joi.object().keys({
+          id: Joi.number().required(),
           time : Joi.string().required(),
           disable: Joi.boolean().required()
         })
@@ -107,13 +110,11 @@ module.exports = {
 
       nslot: Joi.array().items(
         Joi.object().keys({
+          id: Joi.number().required(),
           time : Joi.string().required(),
           disable: Joi.boolean().required()
         })
-      ).allow("").optional(),
-
-      day_of_week: Joi.number().required(),      
-      id: Joi.number().required()
+      ).allow("").optional()
     }),
     addClinic: Joi.object().keys({
       id: Joi.number().required()

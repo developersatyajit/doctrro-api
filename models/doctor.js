@@ -467,6 +467,73 @@ module.exports = {
 
 		})
 	},
+	updateChamberTimeslot: async(post_data) => {
+		return new Promise(function(resolve, reject) {
+
+
+		    	// morning slot
+				post_data.mslot.map( mitem => {
+					let mstatus = mitem.disable === true ? 1 : 0
+					db.queryAsync(`UPDATE available_slot 
+						SET status = ?
+						WHERE id = ?`, [mstatus, mitem.id])
+				    .then(function (morn) {
+				    	resolve(morn);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in updating morning');
+						reject(error);
+				    });
+				})
+
+		    	post_data.aslot.map( aitem => {
+					let astatus = aitem.disable === true ? 1 : 0
+					db.queryAsync(`UPDATE available_slot 
+						SET status = ?
+						WHERE id = ?`, [ astatus, aitem.id])
+				    .then(function (af) {
+				    	resolve(af);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in updating afternoon');
+						reject(error);
+				    });
+				})
+
+		    	post_data.eslot.map( eitem => {
+					let estatus = eitem.disable === true ? 1 : 0
+					db.queryAsync(`UPDATE available_slot 
+						SET status = ?
+						WHERE id = ?`, [estatus, eitem.id])
+				    .then(function (eve) {
+				    	resolve(eve);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in updating evening');
+						reject(error);
+				    });
+				})
+
+				post_data.nslot.map( nitem => {
+					let nstatus = nitem.disable === true ? 1 : 0
+					db.queryAsync(`UPDATE available_slot 
+						SET status = ?
+						WHERE id = ?`, [nstatus, nitem.id])
+				    .then(function (nt) {
+				    	resolve(nt);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in updating night');
+						reject(error);
+				    });
+				})
+
+		})
+	},
 	updateFees: async( data ) => {
 
 		return new Promise(function(resolve, reject) {
@@ -1029,13 +1096,11 @@ module.exports = {
 			 	GROUP BY L.id`, 
 			[id])
 		    .then(async (data) => {
+
 		    	if(data.length > 0){
 
 		    		db.queryAsync(`
-						select D.center_name, D.location, D.id, DS.morningStart, DC.fees, 
-						DS.morningEnd, DS.afternoonStart, 
-						DS.afternoonEnd, DS.eveningStart, 
-						DS.eveningEnd, DS.nightStart, DS.nightEnd,
+						select D.center_name, D.location, D.id, DC.fees,
 						DT.mon_start_time, DT.tue_start_time, 
 						DT.wed_start_time, DT.thur_start_time, 
 						DT.fri_start_time, DT.sat_start_time, 
@@ -1045,13 +1110,45 @@ module.exports = {
 						DT.sat_end_time, DT.sun_end_time
 						from doctor_chamber DC
 					 	LEFT JOIN diagnostic D ON D.id = DC.chamber_id
-					 	LEFT JOIN doctor_timeslot DS ON DS.doc_id = DC.doc_id AND DS.clinic_id = DC.chamber_id
 					 	LEFT JOIN diagnostic_time DT ON DT.ds_id = DC.chamber_id
 					 	where DC.doc_id = ?
 					`, [id])
-					.then(async (doc) => {
-						data[0] = {...data[0], ch: doc}
-						resolve( data[0] ); 
+					.then(async (allchamber) => {
+
+							let chamberDetails = await Promise.all(
+								allchamber.map(async chamber => {
+
+								    return await module.exports.getAllWeek(chamber.id, id)
+									.then( async( dayofweek ) => {
+										{...chamber, week: dayofweek};
+
+										chamber = await Promise.all(
+												dayofweek.map( async( item ) => {
+
+													return await module.exports.getAllSlot( item.id )
+															.then((row) => {
+																return {...item, slot: row};
+															})
+															.catch((err) => {
+																console.log('Model error', err)
+																var error = new Error('Error in getDoctorDetails');
+																reject(error);
+															})
+												})
+											)
+
+										return chamber;
+									})
+									.catch((err) => {
+										console.log('Model error', err)
+										var error = new Error('Error in getDoctorDetails');
+										reject(error);
+									})
+							  	}
+							));
+
+
+							resolve({...data[0], ch: chamberDetails });
 					})
 					.catch(function (err) {
 						console.log('Model error', err)
@@ -1070,6 +1167,35 @@ module.exports = {
 		    });
 		})
 	},
+
+	getAllWeek: async(clinic_id, doc_id) => {
+		return new Promise( (resolve, reject) => {
+			db.queryAsync(`SELECT DT.day_of_week, DT.id FROM doctor_timeslot DT WHERE DT.clinic_id = ? AND DT.doc_id=?`,[clinic_id, doc_id])
+			.then(( week ) => {
+				resolve(week);
+			})
+			.catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getAllWeek');
+				reject(error);
+		    });
+		})
+	},
+
+	getAllSlot: async(timeslot_id) => {
+		return new Promise( (resolve, reject) => {
+			db.queryAsync(`SELECT slot, schedule, status FROM available_slot WHERE timeslot_id=?`,[timeslot_id])
+			.then(( slots ) => {
+				resolve(slots);
+			})
+			.catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getAllSlot');
+				reject(error);
+		    });
+		})
+	},
+
 	checkDoctor: async( id ) => {
 		return new Promise(function(resolve, reject) {
 			db.queryAsync("select COUNT(*) as total from login where id = ? AND category = 1 and practioner = 1", [id])
