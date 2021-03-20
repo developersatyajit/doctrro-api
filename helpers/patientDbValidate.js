@@ -65,4 +65,40 @@ module.exports = {
 		}
 	},
 
+	booking: async (req, res, next) => {
+
+		const {	email, other_email } = req.value.body;
+
+		let err = {};
+
+		if(email){
+			let userData = await userModel.duplicateEmail(req.user.id, entities.encode(email));
+			if(userData){
+				err.email = "Email already exists";
+			}
+
+			if (module.exports.isObjEmpty(err)) {
+				next()
+			} else {
+				return res.status(400).json({ 'status' : 2, 'errors' : err});
+			}
+		}else{
+			if(other_email){
+				let userData = await userModel.duplicateEmail(req.user.id, entities.encode(other_email));
+				console.log(userData)
+				if(userData){
+					err.other_email = "Email already exists";
+				}
+
+				if (module.exports.isObjEmpty(err)) {
+					next()
+				} else {
+					return res.status(400).json({ 'status' : 2, 'errors' : err});
+				}
+			}else{
+				next()
+			}
+		}		
+	},
+
 }

@@ -219,4 +219,128 @@ module.exports = {
 			}
 		});
 	},
+	getPatientByMobile: async( post_data ) => {
+
+		return new Promise(async(resolve, reject) => {
+
+			db.queryAsync(`SELECT * FROM login WHERE contact = ? AND category = '2'`, [post_data.mobile_no])
+			    .then(function (data) {
+			    	if(data.length > 0){
+			    		resolve({
+			    			id: data[0].id,
+			    			full_name: data[0].full_name
+			    		})
+			    	}else{
+			    		db.queryAsync(`INSERT INTO login 
+			    			SET 
+			    			contact=?,
+			    			category=?,
+			    			full_name=?,
+			    			add_date=?,
+			    			update_date=?`, 
+			    			[
+				    			post_data.mobile_no,
+				    			2,
+				    			'Patient',
+				    			post_data.add_date,
+				    			post_data.update_date
+			    			])
+			    		.then(( result ) => {
+			    			if(result.insertId > 0){
+			    				resolve({
+					    			id: result.insertId,
+					    			full_name: 'Patient'
+					    		})
+			    			}else{
+			    				var error = new Error('Error in getPatientByMobile');
+								reject(error);
+			    			}
+			    		})
+			    		.catch( (err) => {
+							console.log(err)
+							var error = new Error('Error in getPatientByMobile');
+							reject(error);
+					    })
+			    	}
+			    })
+			    .catch( (err) => {
+					console.log(err)
+					var error = new Error('Error in getPatientByMobile');
+					reject(error);
+			    });
+		});
+	},
+
+	getPatientByDelivery: async( post_data ) => {
+
+		return new Promise(async(resolve, reject) => {
+
+			db.queryAsync(`SELECT * FROM login WHERE contact=? AND delivery_id=? AND otp=? AND category = '2'`, [post_data.mobile_no, post_data.delivery_id, post_data.otp])
+			    .then(function (data) {
+			    	if(data.length > 0){
+			    		resolve (data)
+			    	}else{
+			    		reject([]);
+			    	}
+			    })
+			    .catch( (err) => {
+					console.log(err)
+					var error = new Error('Error in getPatientByDelivery');
+					reject(error);
+			    });
+		});
+	},
+	addNewBooking: async( post_data ) => {
+
+		return new Promise(async(resolve, reject) => {
+
+			db.queryAsync(`INSERT INTO appointment SET
+				doc_id=?,
+				clinic_id=?,
+				patient_id=?,
+				book_date=?,
+				slot_id=?,
+				book_for=?,
+				mode_of_payment=?,
+				full_name=?,
+				email=?,
+				other_name=?,
+				other_contact=?,
+				other_email=?,
+				booked_by=?,
+				cancelled_by=?,
+				status=?,
+				complete=?,
+				add_date=?,
+				update_date=?
+				`, [
+					post_data.doc_id,
+					post_data.clinic_id,
+					post_data.patient_id,
+					post_data.book_date,
+					post_data.slot_id,
+					post_data.book_for,
+					post_data.mode_of_payment,
+					post_data.full_name,
+					post_data.email,
+					post_data.other_name,
+					post_data.other_contact,
+					post_data.other_email,
+					post_data.booked_by,
+					post_data.cancelled_by,
+					post_data.status,
+					post_data.complete,
+					post_data.add_date,
+					post_data.update_date
+				])
+			    .then(function (data) {
+			    	resolve (data.insertId)
+			    })
+			    .catch( (err) => {
+					console.log(err)
+					var error = new Error('Error in addNewBooking');
+					reject(error);
+			    });
+		});
+	},
 }

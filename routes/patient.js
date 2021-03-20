@@ -41,6 +41,18 @@ router.route('/upload/profilepic')
   .post(signature,patientController.authentication,patientController.uploadProfilePic);
 
 
+router.route('/check_otp_booking')
+  .post(patientController.checkOtpBooking);
+
+
+router.route('/submit_otp_booking')
+  .post(patientController.submitOtpBooking);
+
+router.route('/booking')
+  .post(signature,patientController.authentication, validateBody(schemas.booking), validateDbBody.booking, patientController.booking);
+
+
+
 // router.route('/council/all')
 //   .get(doctorController.medicalCouncilList);
 

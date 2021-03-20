@@ -1120,24 +1120,23 @@ module.exports = {
 
 								    return await module.exports.getAllWeek(chamber.id, id)
 									.then( async( dayofweek ) => {
-										{...chamber, week: dayofweek};
 
-										chamber = await Promise.all(
-												dayofweek.map( async( item ) => {
+										let available_slot = await Promise.all(
+											dayofweek.map( async( item ) => {
 
-													return await module.exports.getAllSlot( item.id )
-															.then((row) => {
-																return {...item, slot: row};
-															})
-															.catch((err) => {
-																console.log('Model error', err)
-																var error = new Error('Error in getDoctorDetails');
-																reject(error);
-															})
-												})
-											)
+												return await module.exports.getAllSlot( item.id )
+														.then((row) => {
+															return {...item, slot: row};
+														})
+														.catch((err) => {
+															console.log('Model error', err)
+															var error = new Error('Error in getDoctorDetails');
+															reject(error);
+														})
+											})
+										)
 
-										return chamber;
+										return {...chamber, available_slot};
 									})
 									.catch((err) => {
 										console.log('Model error', err)
@@ -1183,8 +1182,13 @@ module.exports = {
 	},
 
 	getAllSlot: async(timeslot_id) => {
-		return new Promise( (resolve, reject) => {
-			db.queryAsync(`SELECT slot, schedule, status FROM available_slot WHERE timeslot_id=?`,[timeslot_id])
+		return new Promise((resolve, reject) => {
+			db.queryAsync(`
+				SELECT S.id, S.slot, S.schedule, S.status, B.status as book_status
+				FROM available_slot S
+				LEFT JOIN appointment B ON S.id = B.slot_id
+				WHERE S.timeslot_id=?
+				`,[timeslot_id])
 			.then(( slots ) => {
 				resolve(slots);
 			})

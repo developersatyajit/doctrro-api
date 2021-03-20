@@ -1,10 +1,15 @@
 
 const patientModel = require('../models/patient');
 const Entities = require('html-entities').AllHtmlEntities;
+const config = require('../configuration/config');
 const entities = new Entities();
 const dateformat = require('dateformat');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const userController = require('./user');
+const handler = require('../configuration/sms_handler');
+const userModel = require('../models/user')
+const JWT = require('jsonwebtoken');
 
 module.exports = {
   authentication: async (req, res, next) => {
@@ -230,6 +235,145 @@ module.exports = {
           }).end();
       }
 
+    },
+    checkOtpBooking: async(req, res, next) => {
+      const mobile_no = req.body.contact;
+
+        const request = {
+          mobile_no: mobile_no,
+          add_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+          update_date  : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+        }
+        await patientModel.getPatientByMobile(request)
+        .then( async( result ) => {
+
+            req.user = {
+              full_name: result.full_name,
+              contact: mobile_no
+            }
+
+            await handler.sendOtpVerification(req,res,next)
+            .then( async(response) => {
+
+                await userModel.updateOTP(result.id, response.otp, response.delivery_id)
+                    .then(() => {
+                          res.status(200).json({
+                            status: 1,
+                            data: response.delivery_id
+                          }).end()
+                    })
+                    .catch(err => {
+                        res.status(400).json({
+                          status: 3,
+                          message: 'Something went wrong'
+                        }).end();
+                    })
+                
+            })
+            .catch((err) => {
+                console.log( err )
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end()
+            })
+
+        })
+        .catch((err) => {
+            console.log( err )
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end()
+        })
+
+    },
+
+    submitOtpBooking: async(req, res, next) => {
+        const mobile_no = req.body.mobile_no
+        const delivery_id = req.body.id
+        const otp = req.body.otp
+
+        const request = {
+          mobile_no : mobile_no,
+          delivery_id : delivery_id,
+          otp : otp
+        }
+
+        await patientModel.getPatientByDelivery(request)
+        .then(( result ) => {
+
+            let token = JWT.sign({
+              iss: 'Doctrro',
+              sub: result[0].id,
+              email: result[0].email,
+              role: result[0].category
+            }, config.jwt.secret, {expiresIn: '2460s'});
+
+            res.status(200).json({
+              status: 1,
+              data: result,
+              token
+            }).end()
+        })
+        .catch((err) => {
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end()
+        })
+    },
+
+    booking: async(req, res, next) => {
+
+      const {
+        booking_for,
+        booking_date,
+        center_id, 
+        email,
+        full_name,
+        mode_of_payment,
+        doc_id,
+        slot_id,
+        other_name,
+        other_email,
+        other_contact
+      } = req.value.body
+
+      const request = {
+        book_for : booking_for === 'BOOKING_FOR_OTHER' ? 2 : 1,
+        book_date: booking_date,
+        clinic_id : center_id,
+        patient_id: req.user.id,
+        email,
+        full_name,
+        mode_of_payment,
+        doc_id,
+        slot_id,
+        other_name,
+        other_email,
+        other_contact,
+        booked_by: 1,
+        cancelled_by: 0,
+        status: 1,
+        complete: 0,
+        add_date: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+        update_date: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+      }
+
+        await patientModel.addNewBooking(request)
+        .then(( result ) => {
+            res.status(200).json({
+              status: 1,
+              data: result
+            }).end()
+        })
+        .catch((err) => {
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end()
+        })
     },
 
 }

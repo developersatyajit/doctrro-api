@@ -37,7 +37,7 @@ module.exports = {
   },
   schemas: {
     saveDoctorBasic:Joi.object().keys({
-      email: Joi.string().required().email().max(100),
+      email: Joi.string().required().email().max(200),
       full_name: Joi.string().min(1).max(100).required().regex(/^[a-z][a-z\s\.]*$/i, 'full name'),
       contact: Joi.string().required().max(20),
       password : Joi.string().required().allow("").optional(),
@@ -102,6 +102,21 @@ module.exports = {
       no_chronic: Joi.number().required().allow("").optional(),
       no_surgery: Joi.number().required().allow("").optional()
     }),
+
+    booking: Joi.object().keys({
+      booking_for : Joi.string().required(),
+      booking_date: Joi.date().raw(),
+      center_id : Joi.number().required(), 
+      email: Joi.string().required().email().max(100).allow("").optional(),
+      full_name: Joi.string().required().allow("").optional(),
+      mode_of_payment: Joi.string().required(),
+      doc_id: Joi.number().required(), 
+      slot_id: Joi.number().required(),
+      other_name: Joi.string().required().allow("").optional(),
+      other_email: Joi.string().required().email().max(100).allow("").optional(),
+      other_contact: Joi.number().required().allow("").optional()
+    }),
+
   },
   
   schema_posts:{
