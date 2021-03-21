@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const userController = require('./user');
 const handler = require('../configuration/sms_handler');
 const userModel = require('../models/user')
+const clinicModel = require('../models/diagnostic')
 const JWT = require('jsonwebtoken');
 
 module.exports = {
@@ -247,12 +248,13 @@ module.exports = {
         await patientModel.getPatientByMobile(request)
         .then( async( result ) => {
 
-            req.user = {
-              full_name: result.full_name,
-              contact: mobile_no
+            const sms = {
+              website : req.get('host'),
+              contact : mobile_no,
+              full_name : result.full_name
             }
 
-            await handler.sendOtpVerification(req,res,next)
+            await handler.sendOtpVerification( sms )
             .then( async(response) => {
 
                 await userModel.updateOTP(result.id, response.otp, response.delivery_id)
@@ -341,6 +343,7 @@ module.exports = {
       } = req.value.body
 
       const request = {
+        booking_id: Math.floor(Math.random() * Math.floor(Math.random() * Date.now())),
         book_for : booking_for === 'BOOKING_FOR_OTHER' ? 2 : 1,
         book_date: booking_date,
         clinic_id : center_id,
@@ -362,11 +365,75 @@ module.exports = {
       }
 
         await patientModel.addNewBooking(request)
-        .then(( result ) => {
-            res.status(200).json({
-              status: 1,
-              data: result
-            }).end()
+        .then(async( appoitment_id ) => {
+
+            await patientModel.getSlotTimeFromId(slot_id)
+            .then(async( slotData ) => {
+
+              await patientModel.getDoctorName( doc_id )
+              .then(async( docData ) => {
+
+                await userModel.fetchUserDetails( req.user.id, 2 )
+                .then( async( userData ) => {
+
+                    await clinicModel.getClinicOnly( center_id )
+                    .then(async( clinicData ) => {
+
+                        const sms = {
+                          app_id : appoitment_id,
+                          patient_full_name: booking_for === 'BOOKING_FOR_OTHER' ? other_name : full_name,
+                          booking_date,
+                          booking_time : slotData.schedule,
+                          doctor_full_name: docData.full_name,
+                          clinic_address: clinicData.location,
+                          clinic_contact_number: clinicData.contact_1,
+                          website: req.get('host'),
+                          patient_contact_number: userData.contact
+                        }
+
+                        await handler.sendToPatientFromPatient( sms )
+                        .then(( result ) => {
+
+                            res.status(200).json({
+                              status: 1,
+                              data: result
+                            }).end()
+                        })
+                        .catch((err) => {
+                            res.status(400).json({
+                              status: 3,
+                              message: 'Something went wrong'
+                            }).end()
+                        })
+                    })
+                    .catch((err) => {
+                        res.status(400).json({
+                          status: 3,
+                          message: 'Something went wrong'
+                        }).end()
+                    })
+                })
+                .catch((err) => {
+                      res.status(400).json({
+                        status: 3,
+                        message: 'Something went wrong'
+                      }).end()
+                  })
+              })
+              .catch((err) => {
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end()
+              })
+
+            })
+            .catch((err) => {
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end()
+            })
         })
         .catch((err) => {
             res.status(400).json({

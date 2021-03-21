@@ -52,6 +52,20 @@ module.exports = {
 		    });
 		}); 
 	},
+	getClinicOnly: async ( id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`select * from diagnostic
+					WHERE id=?`, [id])
+		    .then(async (data) => {
+				resolve(data[0]);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicOnly');
+				reject(error);
+		    });
+		}); 
+	},
 	getClinicTiming: async ( doc_id, clinic_id )=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`select * from doctor_timeslot

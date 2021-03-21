@@ -295,6 +295,7 @@ module.exports = {
 		return new Promise(async(resolve, reject) => {
 
 			db.queryAsync(`INSERT INTO appointment SET
+				booking_id=?,
 				doc_id=?,
 				clinic_id=?,
 				patient_id=?,
@@ -314,6 +315,7 @@ module.exports = {
 				add_date=?,
 				update_date=?
 				`, [
+					post_data.booking_id,
 					post_data.doc_id,
 					post_data.clinic_id,
 					post_data.patient_id,
@@ -334,11 +336,41 @@ module.exports = {
 					post_data.update_date
 				])
 			    .then(function (data) {
-			    	resolve (data.insertId)
+			    	data.insertId > 0 ? resolve(post_data.booking_id) : reject(new Error('Something went wrong'))
 			    })
 			    .catch( (err) => {
 					console.log(err)
 					var error = new Error('Error in addNewBooking');
+					reject(error);
+			    });
+		});
+	},
+	getSlotTimeFromId : async( slot_id ) => {
+
+		return new Promise(async(resolve, reject) => {
+
+			db.queryAsync(`SELECT schedule FROM available_slot WHERE id=?`, [slot_id])
+			    .then(function (data) {
+			    	resolve(data[0])
+			    })
+			    .catch( (err) => {
+					console.log(err)
+					var error = new Error('Error in getSlotTimeFromId');
+					reject(error);
+			    });
+		});
+	},
+	getDoctorName: async( doc_id ) => {
+
+		return new Promise(async(resolve, reject) => {
+
+			db.queryAsync(`SELECT full_name FROM login WHERE id=? AND category=1`, [doc_id])
+			    .then(function (data) {
+			    	resolve(data[0])
+			    })
+			    .catch( (err) => {
+					console.log(err)
+					var error = new Error('Error in getDoctorName');
 					reject(error);
 			    });
 		});
