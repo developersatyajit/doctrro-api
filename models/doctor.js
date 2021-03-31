@@ -1124,7 +1124,7 @@ module.exports = {
 										let available_slot = await Promise.all(
 											dayofweek.map( async( item ) => {
 
-												return await module.exports.getAllSlot( item.id )
+												return await module.exports.getAllSlot( item.id, id )
 														.then((row) => {
 															return {...item, slot: row};
 														})
@@ -1136,7 +1136,8 @@ module.exports = {
 											})
 										)
 
-										return {...chamber, available_slot};
+										return {...chamber, available_slot };
+
 									})
 									.catch((err) => {
 										console.log('Model error', err)
@@ -1181,14 +1182,13 @@ module.exports = {
 		})
 	},
 
-	getAllSlot: async(timeslot_id) => {
+	getAllSlot: async(timeslot_id, doc_id) => {
 		return new Promise((resolve, reject) => {
 			db.queryAsync(`
-				SELECT S.id, S.slot, S.schedule, S.status, B.status as book_status
-				FROM available_slot S
-				LEFT JOIN appointment B ON S.id = B.slot_id
-				WHERE S.timeslot_id=?
-				`,[timeslot_id])
+				SELECT S.id, S.slot, S.schedule, S.status, APT.id as booking_id, APT.status as booking_status
+				FROM available_slot S 
+				LEFT JOIN appointment APT ON APT.slot_id = S.id 
+				WHERE S.timeslot_id=?`,[timeslot_id, doc_id])
 			.then(( slots ) => {
 				resolve(slots);
 			})
@@ -1272,4 +1272,35 @@ module.exports = {
 			}
 		});
 	},
+	getClinicBooking: async ( doc_id, clinic_id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+
+				SELECT APT.id, APT.book_date, APT.mode_of_payment, 
+				APT.slot_id, AVS.schedule, DT.duration,
+			    CASE APT.book_for
+			    	WHEN 1 THEN APT.full_name
+			    	WHEN 2 THEN APT.other_name
+			    END patient_name,    
+			    CASE APT.book_for
+			    	WHEN 1 THEN APT.email
+			        WHEN 2 THEN APT.other_email
+			    END patient_email			    
+			    FROM appointment APT
+			    LEFT JOIN available_slot AVS ON AVS.id = APT.slot_id
+			    LEFT JOIN doctor_timeslot DT ON DT.id = AVS.timeslot_id
+			    WHERE APT.doc_id=? AND APT.clinic_id=? AND APT.status = 1 AND APT.complete=0
+
+				`, [doc_id, clinic_id])
+		    .then(function (data) {
+		    	resolve(data)
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicBooking');
+				reject(error);
+		    });
+		}); 
+	},
+	
 }

@@ -342,7 +342,7 @@ module.exports = {
         other_contact
       } = req.value.body
 
-      const request = {
+      let request = {
         booking_id: Math.floor(Math.random() * Math.floor(Math.random() * Date.now())),
         book_for : booking_for === 'BOOKING_FOR_OTHER' ? 2 : 1,
         book_date: booking_date,
@@ -367,17 +367,17 @@ module.exports = {
         await patientModel.addNewBooking(request)
         .then(async( appoitment_id ) => {
 
-            await patientModel.getSlotTimeFromId(slot_id)
-            .then(async( slotData ) => {
+            await patientModel.getDoctorName( doc_id )
+            .then(async( docData ) => {
 
-              await patientModel.getDoctorName( doc_id )
-              .then(async( docData ) => {
+              await userModel.fetchUserDetails( req.user.id, 2 )
+              .then( async( userData ) => {
 
-                await userModel.fetchUserDetails( req.user.id, 2 )
-                .then( async( userData ) => {
+                  await clinicModel.getClinicOnly( center_id )
+                  .then(async( clinicData ) => {
 
-                    await clinicModel.getClinicOnly( center_id )
-                    .then(async( clinicData ) => {
+                    await clinicModel.getSlotData( slot_id )
+                    .then(async( slotData ) => {
 
                         const sms = {
                           app_id : appoitment_id,
@@ -407,13 +407,15 @@ module.exports = {
                         })
                     })
                     .catch((err) => {
-                        res.status(400).json({
-                          status: 3,
-                          message: 'Something went wrong'
-                        }).end()
+                          res.status(400).json({
+                            status: 3,
+                            message: 'Something went wrong1'
+                          }).end()
                     })
-                })
-                .catch((err) => {
+
+                  })
+                  .catch((err) => {
+                    console.log(err)
                       res.status(400).json({
                         status: 3,
                         message: 'Something went wrong'
@@ -421,12 +423,11 @@ module.exports = {
                   })
               })
               .catch((err) => {
-                  res.status(400).json({
-                    status: 3,
-                    message: 'Something went wrong'
-                  }).end()
-              })
-
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong'
+                    }).end()
+                })
             })
             .catch((err) => {
                 res.status(400).json({

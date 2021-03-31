@@ -93,4 +93,8 @@ router.route('/upload/profilepic')
 router.route('/download-pic/:file')
   .get(signature,doctorController.authentication,doctorController.downloadProfPic);
 
+router.route('/clinic_booking/:clinic_id')
+  .get(signature,doctorController.authentication, doctorController.getClinicBooking);
+
+
 module.exports = router;

@@ -300,8 +300,8 @@ module.exports = {
 				clinic_id=?,
 				patient_id=?,
 				book_date=?,
-				slot_id=?,
 				book_for=?,
+				slot_id=?,
 				mode_of_payment=?,
 				full_name=?,
 				email=?,
@@ -320,8 +320,8 @@ module.exports = {
 					post_data.clinic_id,
 					post_data.patient_id,
 					post_data.book_date,
-					post_data.slot_id,
 					post_data.book_for,
+					post_data.slot_id,
 					post_data.mode_of_payment,
 					post_data.full_name,
 					post_data.email,
@@ -345,21 +345,7 @@ module.exports = {
 			    });
 		});
 	},
-	getSlotTimeFromId : async( slot_id ) => {
-
-		return new Promise(async(resolve, reject) => {
-
-			db.queryAsync(`SELECT schedule FROM available_slot WHERE id=?`, [slot_id])
-			    .then(function (data) {
-			    	resolve(data[0])
-			    })
-			    .catch( (err) => {
-					console.log(err)
-					var error = new Error('Error in getSlotTimeFromId');
-					reject(error);
-			    });
-		});
-	},
+	
 	getDoctorName: async( doc_id ) => {
 
 		return new Promise(async(resolve, reject) => {
@@ -374,5 +360,5 @@ module.exports = {
 					reject(error);
 			    });
 		});
-	},
+	}
 }

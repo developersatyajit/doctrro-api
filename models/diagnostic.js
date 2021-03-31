@@ -94,4 +94,23 @@ module.exports = {
 		    });
 		}); 
 	},
+	getSlotData: async( slot_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+
+				SELECT *			    
+			    FROM available_slot
+			    WHERE id=?
+
+				`, [slot_id])
+		    .then(function (data) {
+		    	resolve(data[0])
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getSlotData');
+				reject(error);
+		    });
+		});
+	}
 }
