@@ -6,6 +6,11 @@ const dateformat = require('dateformat');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const userModel = require('../models/user');
+const patientModel = require('../models/patient');
+const clinicModel = require('../models/diagnostic')
+const handler = require('../configuration/sms_handler');
+const generator = require('generate-password');
+
 
 module.exports = {
   authentication: async (req, res, next) => {
@@ -962,6 +967,164 @@ module.exports = {
             status: "1",
             data: data
           });
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+    fetchAvailableSlots: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const selectedDay = req.body.selectedDay
+
+      await doctorModel.fetchAvailableSlots( doc_id, selectedDay )
+        .then(async function (data) {
+          res.status(200).json({
+            status: "1",
+            data: data
+          });
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+    addPatient:  async(req, res, next) => {
+      
+      const doc_id  = req.user.id;
+
+      const {
+      	patient_name,
+      	patient_email,
+      	patient_mobile,
+      	patient_slot,
+      	clinic_id,
+      	book_date
+      } = req.body
+
+      	let password = generator.generate({
+            length: 10,
+            numbers: true
+        });
+		const salt = await bcrypt.genSalt(10);
+		const passwordHash = await bcrypt.hash(password, salt);
+
+      const patientObj = {
+      	full_name 	: patient_name,
+		email 		: patient_email,
+		contact		: patient_mobile,
+		password 	: passwordHash,
+		salt 		: salt,
+		category 	: 2,
+		practioner 	: 0,
+		add_date 	: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+		update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+      }
+
+      await doctorModel.patientBookingByDoctor( patientObj )
+        .then(async ( patient_id ) => {
+
+        	const bookingObj = {
+        		booking_id: Math.floor(Math.random() * Math.floor(Math.random() * Date.now())),
+				doc_id: doc_id,
+				clinic_id : clinic_id,
+				patient_id : patient_id,
+				book_date : book_date,
+				book_for : 1,
+				slot_id: patient_slot,
+				mode_of_payment : 'offline',
+				full_name: patient_name,
+				email: patient_email,
+				other_name: '',
+				other_contact: '',
+				other_email : '',
+				booked_by: 3,
+				cancelled_by: 0,
+				status: 1,
+				complete : 0,
+				add_date: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+				update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+        	}
+
+        	await patientModel.addNewBooking( bookingObj )
+        	.then(async( appoitment_id ) => {
+
+        		await clinicModel.getSlotData( patient_slot )
+                    .then(async( slotData ) => {
+
+
+                    	await patientModel.getDoctorName( doc_id )
+            			.then(async( docData ) => {
+
+            				await clinicModel.getClinicOnly( clinic_id )
+                  			.then(async( clinicData ) => {
+
+                  				await doctorModel.getClinicBooking( doc_id, clinic_id )
+                    			.then(async( rows ) => {
+
+                    				const sms = {
+					                  app_id : appoitment_id,
+					                  patient_full_name: patient_name,
+					                  booking_date: book_date,
+					                  booking_time : slotData.schedule,
+					                  doctor_full_name: docData.full_name,
+					                  clinic_address: clinicData.location,
+					                  clinic_contact_number: clinicData.contact_1,
+					                  website: req.get('host'),
+					                  patient_contact_number: patient_mobile
+					                }
+
+					                await handler.sendToPatientFromDoctor( sms )
+
+                    				res.status(200).json({
+							            status: "1",
+							            data: rows
+							        });
+                    			})
+                    			.catch(err => {
+						          console.log('error in query', err);
+						          res.status(400).json({
+						            status: 3,
+						            message: 'Something went wrong'
+						          }).end();
+						        })
+
+                  			})
+                  			.catch(err => {
+					          console.log('error in query', err);
+					          res.status(400).json({
+					            status: 3,
+					            message: 'Something went wrong'
+					          }).end();
+					        })
+            			})
+            			.catch(err => {
+				          console.log('error in query', err);
+				          res.status(400).json({
+				            status: 3,
+				            message: 'Something went wrong'
+				          }).end();
+				        })
+                    })
+                    .catch(err => {
+			          console.log('error in query', err);
+			          res.status(400).json({
+			            status: 3,
+			            message: 'Something went wrong'
+			          }).end();
+			        })
+        	})
+        	.catch(err => {
+	          console.log('error in query', err);
+	          res.status(400).json({
+	            status: 3,
+	            message: 'Something went wrong'
+	          }).end();
+	        })
         }).catch(err => {
           console.log('error in query', err);
           res.status(400).json({

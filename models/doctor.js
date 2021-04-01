@@ -1302,5 +1302,69 @@ module.exports = {
 		    });
 		}); 
 	},
-	
+	fetchAvailableSlots: async ( doc_id, selectedDay )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+
+				SELECT id	    
+			    FROM doctor_timeslot WHERE doc_id = ? AND day_of_week = ?
+				`, [doc_id, selectedDay])
+		    .then(function (data) {
+
+		    	db.queryAsync(`
+					SELECT AST.id as value, AST.schedule as label	    
+				    FROM available_slot AST 
+				    LEFT JOIN appointment APT ON APT.slot_id = AST.id
+				    WHERE AST.timeslot_id=? AND AST.status=0 AND APT.id IS NULL
+					`, [ data[0].id ])
+			    .then(function (rows) {
+			    	resolve( rows );
+			    })
+			    .catch(function (err) {
+					console.log('Model error', err)
+					var error = new Error('Error in fetchAvailableSlots');
+					reject(error);
+			    });
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in fetchAvailableSlots');
+				reject(error);
+		    });
+		}); 
+	},
+	patientBookingByDoctor: async( patient ) => {
+
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`INSERT INTO login SET 				
+				full_name = ?,
+				email = ?,
+				contact = ?,
+				password = ?,
+				salt = ?,
+				category=?,
+				practioner=?,
+				add_date = ?,
+				update_date = ?
+				`, [
+					patient.full_name, 
+					patient.email, 
+					patient.contact, 
+					patient.password, 
+					patient.salt, 
+					patient.category, 
+					patient.practioner,
+					patient.add_date,
+					patient.update_date
+				])
+		    .then(function (data) {
+		    	resolve(data.insertId);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in patientBookingByDoctor');
+				reject(error);
+		    });
+		});
+	},
 }

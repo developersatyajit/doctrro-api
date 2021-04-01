@@ -96,5 +96,14 @@ router.route('/download-pic/:file')
 router.route('/clinic_booking/:clinic_id')
   .get(signature,doctorController.authentication, doctorController.getClinicBooking);
 
+router.route('/fetch_available_slots')
+  .post(signature,doctorController.authentication, doctorController.fetchAvailableSlots);
+
+router.route('/add_patient')
+  .post(signature,doctorController.authentication, doctorController.addPatient);
+
+
+
+
 
 module.exports = router;
