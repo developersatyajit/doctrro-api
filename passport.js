@@ -111,7 +111,7 @@ passport.use(new JwtStrategy(opts, async function(payload, done) {
 	    await UserModal.findUserRoleById(payload.sub, payload.role)
 	    .then((data) => {
 	      if(data.length > 0){
-	        done(null, {id: data[0].id, role: data[0].role})
+	        done(null, {id: data[0].id, role: data[0].role, practioner: data[0].practioner })
 	      }else{
 	        done(null, { id: 0 })
 	      }

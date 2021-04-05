@@ -309,7 +309,8 @@ module.exports = {
               iss: 'Doctrro',
               sub: result[0].id,
               email: result[0].email,
-              role: result[0].category
+              role: result[0].category,
+              practioner: result[0].practioner
             }, config.jwt.secret, {expiresIn: '2460s'});
 
             res.status(200).json({

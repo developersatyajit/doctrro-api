@@ -178,7 +178,8 @@ module.exports = {
               iss: 'Doctrro',
               sub: data.id,
               email: data.email,
-              role: data.role
+              role: data.role,
+              practioner: data.practioner
             }, config.jwt.secret, {expiresIn: '2460s'});
 
             res.status(200).json({
@@ -219,7 +220,8 @@ module.exports = {
                 iss: 'Doctrro',
                 sub: data.id,
                 email: data.email,
-                role: data.role
+                role: data.role,
+                practioner: data.practioner
               }, config.jwt.secret, {expiresIn: '2460s'});  
 
 
@@ -308,11 +310,13 @@ module.exports = {
           
 
         }else{
+
           let token = JWT.sign({
             iss: 'Doctrro',
             sub: req.user.id,
             email: req.user.email,
-            role: req.user.role
+            role: req.user.role,
+            practioner: req.user.practioner
           }, config.jwt.secret, {expiresIn: '2460s'});  
 
 

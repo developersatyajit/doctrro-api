@@ -117,7 +117,7 @@ module.exports = {
 	},
 	findUserRoleById: async(id, role) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("SELECT id, category as role FROM login WHERE id = ? AND category = ?", [id,role])
+			db.queryAsync("SELECT id, category as role, practioner FROM login WHERE id = ? AND category = ?", [id,role])
 		    .then(function (data) {
 		    	resolve(data);
 		    })
@@ -169,7 +169,7 @@ module.exports = {
 	},
 	checkOTP: async( otp, delivery_id ) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync(`SELECT COUNT(*) AS total, id, category, email
+			db.queryAsync(`SELECT COUNT(*) AS total, id, category, email, practioner
 				FROM login 
 				WHERE otp=? 
 				AND delivery_id=? 
@@ -184,7 +184,8 @@ module.exports = {
 			    			resolve({
 			    				id: data[0].id,
 			    				email: data[0].email,
-			    				role: data[0].category
+			    				role: data[0].category,
+			    				practioner: data[0].practioner
 			    			})
 			    		})
 			    		.catch((err) => {
@@ -197,7 +198,8 @@ module.exports = {
 			    			resolve({
 			    				id: data[0].id,
 			    				email: data[0].email,
-			    				role: data[0].category
+			    				role: data[0].category,
+			    				practioner: data[0].practioner
 			    			})
 			    		})
 			    		.catch((err) => {
