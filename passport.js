@@ -38,21 +38,18 @@ passport.use(new JwtStrategy(opts, async function(payload, done) {
   	if(payload.admin){
 
   		if (!payload.sub) {
-	    	console.log('sub', payload.sub)
 	      return done(null, {
 	        id: 0
 	      });
 	    }
 
 	    if (payload.admin != 1) {
-	    	console.log('not 1', payload.admin)
 	      return done(null, {
 	        id: 0
 	      });
 	    }
 	    
 	    if (!payload.exp) {
-	    	console.log('exp', payload.exp)
 	      return done(null, {
 	        id: 0
 	      });
@@ -79,7 +76,6 @@ passport.use(new JwtStrategy(opts, async function(payload, done) {
 	      }
 	    })
 	    .catch((err) => {
-	    	console.log('error in findUserRoleById', err)
 	        done(error, false);
 	    })
 

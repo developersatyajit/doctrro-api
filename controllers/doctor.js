@@ -169,6 +169,97 @@ module.exports = {
           }).end();
         })
   },
+  otherProfile: async (req, res, next) => {
+
+      await doctorModel.getDoctorBasic(req.user.id, req.user.role)
+        .then(async (basic) =>  {
+
+          var data = basic[0];
+
+          if(data.file_id){
+            let url = req.protocol + '://' + req.get('host') + '/uploads/profilepic/' + data.filename;
+            data = {...data, image_url: url}
+          }
+
+          await doctorModel.getDoctorSpeciality(req.user.id)
+          .then(async (spec) => {
+
+            data = {...data, speciality:spec};
+
+
+              await doctorModel.getDoctorChamber(req.user.id)
+              .then(async (ch) => {
+
+                data = {...data, ch};
+
+                await doctorModel.countDoctorChamber(req.user.id)
+                .then(async (counter) => {
+                  data = {...data, total_clinic: counter};
+
+                  await doctorModel.getDoctorDocument(req.user.id)
+                  .then(async (doc) => {
+                    data = {...data, doc};
+
+                    if(spec){
+                      await doctorModel.getSpecialityName(spec.split(","))
+                      .then((spname) => {
+                        data = {...data, spname};
+                      })
+                      .catch((err) => {
+                          console.log( err)
+                          res.status(400).json({
+                            status: 3,
+                            message: 'Something went wrong'
+                          }).end();
+                      })
+                    }
+
+                    res.status(200).json({
+                      status: "1",
+                      data: data
+                    });
+                  })
+                  .catch(err => {
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong'
+                    }).end();
+                  })
+
+                })
+                .catch(err => {
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end();
+                })
+                  
+                
+              })
+              .catch(err => {
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end();
+              })
+            
+
+          })
+          .catch(err => {
+            console.log(err)
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end();
+          })
+
+        }).catch(err => {
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+  },
   save_doctor_basic_info: async (req, res, next) => {
       const { full_name, email, contact, password, gender, reg_no, reg_council, reg_year, speciality, experience } = req.body
       let user_arr = {
@@ -594,26 +685,6 @@ module.exports = {
           message: 'Something went wrong'
         }).end();
     }     
-  },
-  update_practioner: async (req, res, next) => {
-
-    const { practioner } = req.body;
-
-    await doctorModel.updatePractioner( req.user.id, practioner )
-        .then(( counter ) => {
-
-            res.status(200).json({
-              status: "1",
-              data: practioner
-            });
-        })
-        .catch(err => {
-          console.log('error in query', err);
-          res.status(400).json({
-            status: 3,
-            message: 'Something went wrong'
-          }).end();
-        })
   },
   add_education: async(req, res, next) => {
     const { pass_year, university, degree } = req.body;
@@ -1066,32 +1137,42 @@ module.exports = {
                   				await doctorModel.getClinicBooking( doc_id, clinic_id )
                     			.then(async( rows ) => {
 
-                    				const sms = {
-					                  app_id : appoitment_id,
-					                  patient_full_name: patient_name,
-					                  booking_date: book_date,
-					                  booking_time : slotData.schedule,
-					                  doctor_full_name: docData.full_name,
-					                  clinic_address: clinicData.location,
-					                  clinic_contact_number: clinicData.contact_1,
-					                  website: req.get('host'),
-					                  patient_contact_number: patient_mobile
-					                }
+                      				const sms = {
+    					                  app_id : appoitment_id,
+    					                  patient_full_name: patient_name,
+    					                  booking_date: book_date,
+    					                  booking_time : slotData.schedule,
+    					                  doctor_full_name: docData.full_name,
+    					                  clinic_address: clinicData.location,
+    					                  clinic_contact_number: clinicData.contact_1,
+    					                  website: req.get('host'),
+    					                  patient_contact_number: patient_mobile
+    					                }
 
-					                await handler.sendToPatientFromDoctor( sms )
+    					                await handler.sendToPatientFromDoctor( sms )
+                              .then(() => {
+                                  res.status(200).json({
+                                      status: "1",
+                                      data: rows
+                                  });
+                              })
+                              .catch(err => {
+                                console.log('error in sms', err);
+                                res.status(400).json({
+                                  status: 3,
+                                  message: 'Something went wrong while sending sms'
+                                }).end();
+                              })
 
-                    				res.status(200).json({
-							            status: "1",
-							            data: rows
-							        });
+                    				
                     			})
                     			.catch(err => {
-						          console.log('error in query', err);
-						          res.status(400).json({
-						            status: 3,
-						            message: 'Something went wrong'
-						          }).end();
-						        })
+      						          console.log('error in query', err);
+      						          res.status(400).json({
+      						            status: 3,
+      						            message: 'Something went wrong'
+      						          }).end();
+      						        })
 
                   			})
                   			.catch(err => {
@@ -1125,6 +1206,24 @@ module.exports = {
 	            message: 'Something went wrong'
 	          }).end();
 	        })
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+    dateRangeUser: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { clinic_id, start, end } = req.params;
+
+      await doctorModel.dateRangeUser( doc_id, clinic_id, start, end )
+        .then(async function (data) {
+          res.status(200).json({
+            status: "1",
+            data: data
+          });
         }).catch(err => {
           console.log('error in query', err);
           res.status(400).json({

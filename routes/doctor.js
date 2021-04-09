@@ -26,6 +26,9 @@ router.route('/gender')
 router.route('/profile')
   .get(signature, doctorController.authentication, doctorController.profile);
 
+router.route('/other_profile')
+  .get(signature, doctorController.authentication, doctorController.otherProfile);
+
 router.route('/save_doctor_basic_info')
   .post(signature, doctorController.authentication, validateBody(schemas.saveDoctorBasic), validateDbBody.saveDoctorBasic, doctorController.save_doctor_basic_info);
 
@@ -102,6 +105,8 @@ router.route('/fetch_available_slots')
 router.route('/add_patient')
   .post(signature,doctorController.authentication, doctorController.addPatient);
 
+router.route('/date_range_user/:clinic_id/:start/:end')
+  .get(signature,doctorController.authentication, doctorController.dateRangeUser);
 
 
 

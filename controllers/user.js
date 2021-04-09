@@ -310,14 +310,14 @@ module.exports = {
           
 
         }else{
-
+          
           let token = JWT.sign({
             iss: 'Doctrro',
             sub: req.user.id,
             email: req.user.email,
             role: req.user.role,
             practioner: req.user.practioner
-          }, config.jwt.secret, {expiresIn: '2460s'});  
+          }, config.jwt.secret, {expiresIn: '2460s'});
 
 
           res.status(200).json({

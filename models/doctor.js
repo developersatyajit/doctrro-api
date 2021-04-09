@@ -70,7 +70,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log('Model error', err)
-				var error = new Error('Error in getting diagnostic list');
+				var error = new Error('Error in getDoctorBasic');
 				reject(error);
 		    });
 		}); 
@@ -1366,5 +1366,37 @@ module.exports = {
 				reject(error);
 		    });
 		});
+	},
+	dateRangeUser: async ( doc_id, clinic_id, start, end )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+				SELECT 
+				APT.id,
+				APT.book_date,
+				CASE APT.book_for
+			    	WHEN 1 THEN APT.full_name
+			    	WHEN 2 THEN APT.other_name
+			    END patient_name,
+			    AST.schedule,
+			    L.full_name AS doctor_name
+			    FROM appointment APT
+			    LEFT JOIN login L ON L.id = APT.doc_id
+			    LEFT JOIN available_slot AST ON AST.id = APT.slot_id
+			    WHERE APT.doc_id=? 
+			    AND APT.clinic_id=? 
+			    AND APT.book_date >=? 
+			    AND APT.book_date <=? 
+			    AND APT.status = 1 
+			    AND APT.complete=0
+				`, [doc_id, clinic_id, start, end])
+		    .then(function (data) {
+		    	resolve(data)
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in dateRangeUser');
+				reject(error);
+		    });
+		}); 
 	},
 }

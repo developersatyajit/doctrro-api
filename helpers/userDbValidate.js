@@ -83,6 +83,7 @@ module.exports = {
 				id:userData[0].id,
 				email:userData[0].email,
 				role: userData[0].category,
+				practioner: userData[0].practioner,
 				send_otp : send_otp
 			}
 
