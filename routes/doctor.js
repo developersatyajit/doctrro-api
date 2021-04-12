@@ -108,7 +108,11 @@ router.route('/add_patient')
 router.route('/date_range_user/:clinic_id/:start/:end')
   .get(signature,doctorController.authentication, doctorController.dateRangeUser);
 
+router.route('/specific_date_user/:clinic_id/:start')
+  .get(signature,doctorController.authentication, doctorController.specificDateUser);
 
+router.route('/apply_leave_on_date')
+  .post(signature,doctorController.authentication, doctorController.applyLeaveOnDate);
 
 
 module.exports = router;

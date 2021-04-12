@@ -1399,4 +1399,72 @@ module.exports = {
 		    });
 		}); 
 	},
+	specificDateUser: async ( doc_id, clinic_id, start )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+				SELECT 
+				APT.id,
+				APT.book_date,
+				CASE APT.book_for
+			    	WHEN 1 THEN APT.full_name
+			    	WHEN 2 THEN APT.other_name
+			    END patient_name,
+			    AST.schedule,
+			    L.full_name AS doctor_name
+			    FROM appointment APT
+			    LEFT JOIN login L ON L.id = APT.doc_id
+			    LEFT JOIN available_slot AST ON AST.id = APT.slot_id
+			    WHERE APT.doc_id=? 
+			    AND APT.clinic_id=? 
+			    AND APT.book_date =? 
+			    AND APT.status = 1 
+			    AND APT.complete=0
+				`, [doc_id, clinic_id, start])
+		    .then(function (data) {
+		    	resolve(data)
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in specificDateUser');
+				reject(error);
+		    });
+		}); 
+	},
+	getSpecificSlots: async ( doc_id, clinic_id, start )=>{
+		return new Promise(function(resolve, reject) {
+			
+		    	const dateofweek = new Date(start);
+				const dayofweek = dateofweek.getDay();				
+
+		    	db.queryAsync(`
+		    		SELECT AT.schedule AS label, AT.id AS value FROM doctor_timeslot DT
+		    		LEFT JOIN available_slot AT ON AT.timeslot_id = DT.id AND AT.status=0		    			    		
+		    		WHERE DT.doc_id=? AND DT.clinic_id=? AND DT.day_of_week=?
+		    		AND AT.id NOT IN (select slot_id from appointment where doc_id=? and clinic_id=? and status=1)
+					`, [doc_id, clinic_id, dayofweek, doc_id, clinic_id])
+			    .then(function ( data ) {
+			    	resolve(data)
+			    })
+			    .catch(function (err) {
+					console.log('Model error', err)
+					var error = new Error('Error in getSpecificSlots');
+					reject(error);
+			    });
+		    
+		}); 
+	},
+	applyLeaveOnDate: async(leave_start_date, leave_end_date, reason, clinic_id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync('UPDATE login SET password=?, salt=? WHERE id = ?', [data.password, data.salt, id])
+				.then(( res ) => {
+					resolve(true);
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updating password');
+					reject(error);
+				})
+		})
+	}
 }

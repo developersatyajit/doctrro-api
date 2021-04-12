@@ -1232,4 +1232,64 @@ module.exports = {
           }).end();
         })
     },
+    specificDateUser: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { clinic_id, start } = req.params;
+
+      await doctorModel.specificDateUser( doc_id, clinic_id, start )
+        .then(async function (data) {
+
+          if(data.length > 0){
+            await doctorModel.getSpecificSlots(doc_id, clinic_id, start)
+            .then(async function (ds) {
+
+              res.status(200).json({
+                status: "1",
+                data: data,
+                slots: ds
+              });
+
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+          }else{
+            res.status(200).json({
+              status: "1",
+              data: data,
+              slots: []
+            });
+          }
+          
+        }).catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+    },
+    applyLeaveOnDate: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { leave_start_date, leave_end_date, reason, clinic_id } = req.body
+
+      await doctorModel.applyLeaveOnDate(leave_start_date, leave_end_date, reason, clinic_id, doc_id)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                status: "1",
+                data: data
+              });
+
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    }
 }
