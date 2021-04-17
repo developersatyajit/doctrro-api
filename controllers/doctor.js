@@ -102,7 +102,7 @@ module.exports = {
 
                             if(spec){
                               await doctorModel.getSpecialityName(spec.split(","))
-                              .then((spname) => {
+                              .then(async(spname) => {
                                 data = {...data, spname};
                               })
                               .catch((err) => {
@@ -1048,9 +1048,9 @@ module.exports = {
     },
     fetchAvailableSlots: async(req, res, next) => {
       const doc_id  = req.user.id;
-      const selectedDay = req.body.selectedDay
+      const { selectedDay, clinic_id, selectedDate } = req.body
 
-      await doctorModel.fetchAvailableSlots( doc_id, selectedDay )
+      await doctorModel.fetchAvailableSlots( doc_id, clinic_id, selectedDay, selectedDate )
         .then(async function (data) {
           res.status(200).json({
             status: "1",
@@ -1101,24 +1101,24 @@ module.exports = {
 
         	const bookingObj = {
         		booking_id: Math.floor(Math.random() * Math.floor(Math.random() * Date.now())),
-				doc_id: doc_id,
-				clinic_id : clinic_id,
-				patient_id : patient_id,
-				book_date : book_date,
-				book_for : 1,
-				slot_id: patient_slot,
-				mode_of_payment : 'offline',
-				full_name: patient_name,
-				email: patient_email,
-				other_name: '',
-				other_contact: '',
-				other_email : '',
-				booked_by: 3,
-				cancelled_by: 0,
-				status: 1,
-				complete : 0,
-				add_date: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
-				update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+    				doc_id: doc_id,
+    				clinic_id : clinic_id,
+    				patient_id : patient_id,
+    				book_date : book_date,
+    				book_for : 1,
+    				slot_id: patient_slot,
+    				mode_of_payment : 'offline',
+    				full_name: patient_name,
+    				email: patient_email,
+    				other_name: '',
+    				other_contact: '',
+    				other_email : '',
+    				booked_by: 3,
+    				cancelled_by: 0,
+    				status: 1,
+    				complete : 0,
+    				add_date: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+    				update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
         	}
 
         	await patientModel.addNewBooking( bookingObj )
@@ -1232,46 +1232,6 @@ module.exports = {
           }).end();
         })
     },
-    specificDateUser: async(req, res, next) => {
-      const doc_id  = req.user.id;
-      const { clinic_id, start } = req.params;
-
-      await doctorModel.specificDateUser( doc_id, clinic_id, start )
-        .then(async function (data) {
-
-          if(data.length > 0){
-            await doctorModel.getSpecificSlots(doc_id, clinic_id, start)
-            .then(async function (ds) {
-
-              res.status(200).json({
-                status: "1",
-                data: data,
-                slots: ds
-              });
-
-            }).catch(err => {
-              console.log('error in query', err);
-              res.status(400).json({
-                status: 3,
-                message: 'Something went wrong'
-              }).end();
-            })
-          }else{
-            res.status(200).json({
-              status: "1",
-              data: data,
-              slots: []
-            });
-          }
-          
-        }).catch(err => {
-          console.log('error in query', err);
-          res.status(400).json({
-            status: 3,
-            message: 'Something went wrong'
-          }).end();
-        })
-    },
     applyLeaveOnDate: async(req, res, next) => {
       const doc_id  = req.user.id;
       const { leave_start_date, leave_end_date, reason, clinic_id } = req.body
@@ -1279,10 +1239,20 @@ module.exports = {
       await doctorModel.applyLeaveOnDate(leave_start_date, leave_end_date, reason, clinic_id, doc_id)
             .then(async function ( data ) {
 
-              res.status(200).json({
-                status: "1",
-                data: data
-              });
+              //cancel all appointment
+              await doctorModel.doctorCancelDateAppointment(doc_id, clinic_id, leave_start_date, leave_end_date)
+              .then(( result ) => {
+                res.status(200).json({
+                  status: "1"
+                });
+              })
+              .catch(err => {
+                console.log('error in query', err);
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end();
+              })
 
             }).catch(err => {
               console.log('error in query', err);
@@ -1291,5 +1261,85 @@ module.exports = {
                 message: 'Something went wrong'
               }).end();
             })
-    }
+    },
+    applyLeaveOnSlot: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { slot_start_date, reason, slots, clinic_id } = req.body
+
+      await doctorModel.applyLeaveOnSlot(slot_start_date, reason, clinic_id, doc_id)
+            .then(async function ( data ) {
+
+              await doctorModel.insertLeaveSlots( data, slots )
+              .then(async( result ) => {
+
+                  //cancel all appointment
+                  await doctorModel.doctorCancelSlotAppointment(slot_start_date, clinic_id, doc_id)
+                  .then(( result ) => {
+                    res.status(200).json({
+                      status: "1"
+                    });
+                  })
+                  .catch(err => {
+                    console.log('error in query', err);
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong'
+                    }).end();
+                  })
+              })
+              .catch((err) => {
+                console.log('error in query', err);
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end();
+              })
+
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    slotByDate: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { clinic_id, start } = req.params;
+
+      await doctorModel.slotByDate(clinic_id, doc_id, start)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1",
+                  data: data
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    slotPatient: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { clinic_id, slot_id, book_date } = req.body;
+
+      await doctorModel.slotPatient(clinic_id, doc_id, slot_id, book_date)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1",
+                  data: data
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+
 }

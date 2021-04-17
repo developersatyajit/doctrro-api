@@ -108,11 +108,21 @@ router.route('/add_patient')
 router.route('/date_range_user/:clinic_id/:start/:end')
   .get(signature,doctorController.authentication, doctorController.dateRangeUser);
 
-router.route('/specific_date_user/:clinic_id/:start')
-  .get(signature,doctorController.authentication, doctorController.specificDateUser);
+
+router.route('/slot_by_date/:clinic_id/:start')
+  .get(signature,doctorController.authentication, doctorController.slotByDate);
+
+
+router.route('/slot_patient')
+  .post(signature,doctorController.authentication, doctorController.slotPatient);
+  
 
 router.route('/apply_leave_on_date')
   .post(signature,doctorController.authentication, doctorController.applyLeaveOnDate);
+
+router.route('/apply_leave_on_slot')
+  .post(signature,doctorController.authentication, doctorController.applyLeaveOnSlot);
+
 
 
 module.exports = router;
