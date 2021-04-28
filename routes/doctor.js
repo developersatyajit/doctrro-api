@@ -105,6 +105,10 @@ router.route('/fetch_available_slots')
 router.route('/add_patient')
   .post(signature,doctorController.authentication, doctorController.addPatient);
 
+
+router.route('/update_patient')
+  .post(signature,doctorController.authentication, doctorController.updatePatient);
+
 router.route('/date_range_user/:clinic_id/:start/:end')
   .get(signature,doctorController.authentication, doctorController.dateRangeUser);
 
@@ -123,6 +127,20 @@ router.route('/apply_leave_on_date')
 router.route('/apply_leave_on_slot')
   .post(signature,doctorController.authentication, doctorController.applyLeaveOnSlot);
 
+router.route('/update_no_show')
+  .post(signature,doctorController.authentication, doctorController.updateNoShow);  
+
+router.route('/update_checkin')
+  .post(signature,doctorController.authentication, doctorController.updateCheckIn);  
+
+router.route('/update_checkout')
+  .post(signature,doctorController.authentication, doctorController.updateCheckOut);  
+
+router.route('/update_engage')
+  .post(signature,doctorController.authentication, doctorController.updateEngage);  
+
+router.route('/cancel_booking')
+  .post(signature,doctorController.authentication, doctorController.cancelBooking);  
 
 
 module.exports = router;

@@ -1205,7 +1205,7 @@ module.exports = {
 														})
 											})
 										)
-
+										
 										return {...chamber, available_slot };
 
 									})
@@ -1364,7 +1364,7 @@ module.exports = {
 			db.queryAsync(`
 
 				SELECT APT.id, APT.book_date, APT.mode_of_payment, 
-				APT.slot_id, AVS.schedule, DT.duration,
+				APT.slot_id, AVS.schedule, DT.duration, APT.booking_id, APT.visit_status,
 			    CASE APT.book_for
 			    	WHEN 1 THEN APT.full_name
 			    	WHEN 2 THEN APT.other_name
@@ -1372,12 +1372,17 @@ module.exports = {
 			    CASE APT.book_for
 			    	WHEN 1 THEN APT.email
 			        WHEN 2 THEN APT.other_email
-			    END patient_email			    
+			    END patient_email,
+			    CASE APT.book_for
+			    	WHEN 1 THEN L.contact
+			        WHEN 2 THEN APT.other_contact
+			    END patient_contact    
 			    FROM appointment APT
 			    LEFT JOIN available_slot AVS ON AVS.id = APT.slot_id
 			    LEFT JOIN doctor_timeslot DT ON DT.id = AVS.timeslot_id
-			    WHERE APT.doc_id=? AND APT.clinic_id=? AND APT.status = 1 AND APT.complete=0
-
+			    LEFT JOIN login L ON L.id = APT.patient_id
+			    WHERE APT.doc_id=? AND APT.clinic_id=?
+			    AND (APT.status !=2 AND APT.status !=3)
 				`, [doc_id, clinic_id])
 		    .then(function (data) {
 		    	resolve(data)
@@ -1389,47 +1394,84 @@ module.exports = {
 		    });
 		}); 
 	},
+	getAppointmentSlots: async ( )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+					SELECT slot_id  
+				    FROM appointment
+				    WHERE status=1
+				`)
+		    .then(function (data) {
+		    	resolve(data)
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicBooking');
+				reject(error);
+		    });
+		}); 
+	},
+
 	fetchAvailableSlots: async ( doc_id, clinic_id, selectedDay, selectedDate )=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`
-
 				SELECT id	    
 			    FROM doctor_timeslot WHERE doc_id=? AND clinic_id=? AND day_of_week=?
 				`, [doc_id, clinic_id, selectedDay])
 		    .then(function (data) {
 
 		    	db.queryAsync(`
-					SELECT AST.id as value, AST.schedule as label	    
-				    FROM available_slot AST 
-				    LEFT JOIN appointment APT ON APT.slot_id = AST.id
-				    WHERE AST.timeslot_id=? AND AST.status=0 AND APT.id IS NULL
+					SELECT id as value, schedule as label	    
+				    FROM available_slot
+				    WHERE timeslot_id=? AND status=0
 					`, [ data[0].id ])
-			    .then(function (rows) {
+			    .then(async (rows) => {
 
-			    	db.queryAsync(`
-			    		SELECT LVS.slot_id FROM doctor_leave DL 
-			    		LEFT JOIN leave_slot LVS ON LVS.leave_id = DL.id
-			    		WHERE DL.start_date=? AND DL.doc_id=? AND DL.clinic_id=? AND DL.leave_type=2
-			    		`, [selectedDate, doc_id, clinic_id])
-			    	.then(( leaves ) => {
-			    		let leaveIds = []
-			    		let finalSlots = []
+			    	await module.exports.getAppointmentSlots()
+			    	.then(( records ) => {
 
-			    		if(leaves.length > 0){
-			    			
-			    			leaves.map( k=> {
-			    				leaveIds.push( k.slot_id )
+			    		// filter active slots only, remove reschedule status
+			    		if(records.length > 0){
+			    			let valArr = []
+			    			records.map( val => {
+			    				valArr.push(val.slot_id)
 			    			})
 
-				    		rows.map( item => {
-				    			if(!leaveIds.includes( item.value )){
-				    				finalSlots.push( item );
-				    			}
-				    		})
-			    		}else{
-			    			finalSlots = rows;
+			    			let finalArr = rows.filter( k=> !valArr.includes( k.value ))
+			    			rows = finalArr
 			    		}
-			    		resolve( finalSlots );	
+
+			    		db.queryAsync(`
+				    		SELECT LVS.slot_id FROM doctor_leave DL 
+				    		LEFT JOIN leave_slot LVS ON LVS.leave_id = DL.id
+				    		WHERE DL.start_date=? AND DL.doc_id=? AND DL.clinic_id=? AND DL.leave_type=2
+				    		`, [selectedDate, doc_id, clinic_id])
+				    	.then(( leaves ) => {
+				    		let leaveIds = []
+				    		let finalSlots = []
+
+				    		if(leaves.length > 0){
+				    			
+				    			leaves.map( k=> {
+				    				leaveIds.push( k.slot_id )
+				    			})
+
+					    		rows.map( item => {
+					    			if(!leaveIds.includes( item.value )){
+					    				finalSlots.push( item );
+					    			}
+					    		})
+				    		}else{
+				    			finalSlots = rows;
+				    		}
+				    		resolve( finalSlots );	
+				    	})
+				    	.catch(function (err) {
+							console.log('Model error', err)
+							var error = new Error('Error in fetchAvailableSlots');
+							reject(error);
+					    });
+
 			    	})
 			    	.catch(function (err) {
 						console.log('Model error', err)
@@ -1643,7 +1685,6 @@ module.exports = {
 	slotPatient: async(clinic_id, doc_id, slot_id, book_date) => {
 		return new Promise((resolve, reject) => {
 
-			console
 
 				db.queryAsync(`
 					SELECT 
@@ -1671,6 +1712,191 @@ module.exports = {
 				.catch((err) => {
 					console.log(err);
 					var error = new Error('Error in slotPatient');
+					reject(error);
+				})
+		})
+	},
+	updateNoShow: async(id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+
+				db.queryAsync(`
+					UPDATE 
+					appointment
+					SET visit_status = 4, status=4, complete=2
+					WHERE id=? AND doc_id=?
+					`, [id, doc_id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updateNoShow');
+					reject(error);
+				})
+		})
+	},
+	updateEngage: async(id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					UPDATE 
+					appointment
+					SET visit_status = 2
+					WHERE id=? AND doc_id=?
+					`, [id, doc_id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updateEngage');
+					reject(error);
+				})
+		})
+	},
+	updateCheckIn: async(id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					UPDATE 
+					appointment
+					SET visit_status = 1
+					WHERE id=? AND doc_id=?
+					`, [id, doc_id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updateCheckIn');
+					reject(error);
+				})
+		})
+	},
+	updateCheckOut: async(id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					UPDATE 
+					appointment
+					SET visit_status = 3, status=4, complete=1
+					WHERE id=? AND doc_id=?
+					`, [id, doc_id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updateCheckOut');
+					reject(error);
+				})
+		})
+	},
+	cancelBooking: async(id, doc_id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					UPDATE 
+					appointment
+					SET cancelled_by=2, visit_status = 4, status=2
+					WHERE id=? AND doc_id=?
+					`, [id, doc_id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in cancelBooking');
+					reject(error);
+				})
+		})
+	},
+	getAppointmentAfterCancel:  async(id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+								SELECT 
+								APT.booking_id, 
+								L.full_name as patient_name, 
+								L.contact AS patient_mobile,
+								APT.book_date, 
+								ASL.schedule, 
+								D.full_name AS doctor_name, 
+								DG.center_name, DG.contact_1
+								FROM appointment APT
+								LEFT JOIN login L ON L.id = APT.patient_id
+								LEFT JOIN login D ON D.id = APT.doc_id
+								LEFT JOIN available_slot ASL ON  ASL.id = APT.slot_id
+								LEFT JOIN diagnostic DG ON DG.id = APT.clinic_id
+								WHERE APT.id=?
+					`, [id]
+				)
+				.then( async( data ) => {
+					resolve( data[0] )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in cancelBooking');
+					reject(error);
+				})
+		})
+	},
+	reScheduleBooking: async(id,slot_id,currentDate) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					SELECT booking_id, doc_id, clinic_id, patient_id, book_date, book_for, mode_of_payment, full_name, email, other_name, other_contact, other_email, booked_by, cancelled_by, status, visit_status, complete 
+					FROM appointment WHERE id=? 
+					`, [id]
+				)
+				.then( async( data ) => {
+
+					data = {...data[0], add_date: currentDate, update_date: currentDate, slot_id: slot_id}
+
+					console.log( data )
+					
+					db.queryAsync(`
+						INSERT INTO appointment
+						(booking_id, doc_id, clinic_id, patient_id, book_date, book_for, slot_id, mode_of_payment, full_name, email, other_name, other_contact, other_email, booked_by, cancelled_by, status, visit_status, complete, add_date, update_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+						`, [data.booking_id, data.doc_id, data.clinic_id, data.patient_id, data.book_date, data.book_for, data.slot_id, data.mode_of_payment, data.full_name, data.email, data.other_name, data.other_contact, data.other_email, data.booked_by, data.cancelled_by, data.status, data.visit_status, data.complete, data.add_date, data.update_date]
+					)
+					.then( async( rows ) => {
+						resolve( rows )
+					})
+					.catch((err) => {
+						console.log(err);
+						var error = new Error('Error in reScheduleBooking');
+						reject(error);
+					})
+
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in reScheduleBooking');
+					reject(error);
+				})
+				
+		})
+	},
+	updatePreviousBooking: async(id) => {
+		return new Promise((resolve, reject) => {
+
+				db.queryAsync(`
+					UPDATE appointment SET status=3 WHERE id=?
+					`, [id]
+				)
+				.then( async( data ) => {
+					resolve( data )
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in updatePreviousBooking');
 					reject(error);
 				})
 		})

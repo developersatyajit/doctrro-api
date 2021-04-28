@@ -964,6 +964,40 @@ module.exports = {
     await doctorModel.getDoctorDetails( id )
       .then(async function (data) {
 
+        if(data.ch.length > 0){
+          let record = await Promise.all( data.ch.map( async(item) => {
+            let dl = await doctorModel.getDoctorDateLeave(id, item.id)
+            .then( (dleave) => {
+              return dleave;
+            })
+            .catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+            
+
+            let ls = await doctorModel.getDoctorSlotLeave(id, item.id)
+            .then((sleave) => {
+               return sleave
+            })
+            .catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+
+            return {...item, leave_on_date: dl, leave_on_slot: ls}
+           
+          }))
+
+          data.ch = record
+        }
+
         if(data.filename){
           let url = req.protocol + '://' + req.get('host') + '/uploads/profilepic/' + data.filename;
           data = {...data, url: url}
@@ -1081,19 +1115,19 @@ module.exports = {
             length: 10,
             numbers: true
         });
-		const salt = await bcrypt.genSalt(10);
-		const passwordHash = await bcrypt.hash(password, salt);
+    		const salt = await bcrypt.genSalt(10);
+    		const passwordHash = await bcrypt.hash(password, salt);
 
-      const patientObj = {
-      	full_name 	: patient_name,
-		email 		: patient_email,
-		contact		: patient_mobile,
-		password 	: passwordHash,
-		salt 		: salt,
-		category 	: 2,
-		practioner 	: 0,
-		add_date 	: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
-		update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+        const patientObj = {
+          full_name 	: patient_name,
+      		email 		: patient_email,
+      		contact		: patient_mobile,
+      		password 	: passwordHash,
+      		salt 		: salt,
+      		category 	: 2,
+      		practioner 	: 0,
+      		add_date 	: dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
+      		update_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
       }
 
       await doctorModel.patientBookingByDoctor( patientObj )
@@ -1214,6 +1248,92 @@ module.exports = {
           }).end();
         })
     },
+    updatePatient:async(req, res, next) => {
+      
+      const doc_id  = req.user.id;
+
+      const {
+        clinic_id,
+        id,
+        patient_slot
+      } = req.body
+
+      const currentDate = dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
+
+      await doctorModel.reScheduleBooking( id, patient_slot, currentDate )
+      .then( async(result) => {
+        
+         await doctorModel.updatePreviousBooking( id )
+         .then(async(rows) => {
+
+              await clinicModel.getSlotData( patient_slot )
+              .then(async( slotData ) => {
+
+                   await patientModel.getDoctorName( doc_id )
+                    .then(async( docData ) => {
+
+                        await clinicModel.getClinicOnly( clinic_id )
+                          .then(async( clinicData ) => {
+
+                            await doctorModel.getClinicBooking( doc_id, clinic_id )
+                            .then(async( rows ) => {
+
+                                res.status(200).json({
+                                  status: "1",
+                                  data: rows
+                                });
+                            })
+                            .catch(err => {
+                              console.log('error in query', err);
+                              res.status(400).json({
+                                status: 3,
+                                message: 'Something went wrong'
+                              }).end();
+                            })
+
+                          })
+                          .catch(err => {
+                            console.log('error in query', err);
+                            res.status(400).json({
+                              status: 3,
+                              message: 'Something went wrong'
+                            }).end();
+                          })
+                    })
+                    .catch(err => {
+                    console.log('error in query', err);
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong'
+                    }).end();
+                  })
+              })
+              .catch(err => {
+                console.log('error in query', err);
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end();
+              })
+
+         })
+         .catch(err => {
+          console.log('error in query', err);
+          res.status(400).json({
+            status: 3,
+            message: 'Something went wrong'
+          }).end();
+        })
+      })
+      .catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+    },
+
     dateRangeUser: async(req, res, next) => {
       const doc_id  = req.user.id;
       const { clinic_id, start, end } = req.params;
@@ -1333,6 +1453,134 @@ module.exports = {
                   status: "1",
                   data: data
               });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    updateNoShow: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { id } = req.body;
+
+      await doctorModel.updateNoShow(id, doc_id)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1"
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    updateEngage: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { id } = req.body;
+
+      await doctorModel.updateEngage(id, doc_id)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1"
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    updateCheckIn: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { id } = req.body;
+
+      await doctorModel.updateCheckIn(id, doc_id)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1"
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    updateCheckOut: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { id } = req.body;
+
+      await doctorModel.updateCheckOut(id, doc_id)
+            .then(async function ( data ) {
+
+              res.status(200).json({
+                  status: "1"
+              });
+            }).catch(err => {
+              console.log('error in query', err);
+              res.status(400).json({
+                status: 3,
+                message: 'Something went wrong'
+              }).end();
+            })
+    },
+    cancelBooking: async(req, res, next) => {
+      const doc_id  = req.user.id;
+      const { id } = req.body;
+
+      await doctorModel.cancelBooking(id, doc_id)
+            .then(async function ( data ) {
+
+
+              await doctorModel.getAppointmentAfterCancel( id )
+              .then(async( rows ) => {
+
+                  const sms = {
+                    app_id : rows.booking_id,
+                    patient_full_name: rows.patient_name,
+                    booking_date: rows.book_date,
+                    booking_time : rows.schedule,
+                    doctor_full_name: rows.doctor_name,
+                    clinic_name: rows.center_name,
+                    clinic_contact_number: rows.contact_1,
+                    website: req.get('host'),
+                    patient_contact_number: rows.patient_mobile
+                  }
+
+                  console.log( sms );
+
+                  await handler.sendToPatientCancelByClinic( sms )
+                  .then(() => {
+                      res.status(200).json({
+                          status: "1"
+                      });
+                  })
+                  .catch(err => {
+                    console.log('error in sms', err);
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong while sending sms'
+                    }).end();
+                  })
+
+
+              })
+              .catch(err => {
+                console.log('error in sms', err);
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong while sending sms'
+                }).end();
+              })
             }).catch(err => {
               console.log('error in query', err);
               res.status(400).json({
