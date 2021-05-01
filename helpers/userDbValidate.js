@@ -17,7 +17,7 @@ module.exports = {
 	 },
 
 	signup: async (req, res, next) => {
-		const {	email, practitioner } = req.value.body;
+		const {	email, category_id } = req.value.body;
 
 		let err = {};
 		const isEmailExist = await userModel.emailExists(entities.encode(email));
@@ -33,7 +33,7 @@ module.exports = {
 			}
 		}
 
-		if(![1,2].includes(practitioner)){
+		if(![1,2].includes(category_id)){
 			err.practitioner = "Invalid medical practitioner";
 		}
 
@@ -97,6 +97,38 @@ module.exports = {
 			
 			next()
 			
+		} else {
+			return res.status(400).json({ 'status' : 2, 'errors' : err});
+		}
+	},
+	loginWithMobile: async (req, res, next) => {
+		const {	mobile_number } = req.value.body;
+
+		let err = {};
+		let userData = await userModel.getUserByMobile( mobile_number );
+		
+		if(!userData){
+			err.mobile_number = "Mobile number does not exist";
+		}
+
+		if (module.exports.isObjEmpty(err)) {
+			next()
+		} else {
+			return res.status(400).json({ 'status' : 2, 'errors' : err});
+		}
+	},
+	loginWithOtp: async (req, res, next) => {
+		const {	otp, id } = req.value.body;
+
+		let err = {};
+		let userData = await userModel.getUserByOTP( otp, id );
+		
+		if(!userData){
+			err.otp = "Invalid otp submitted";
+		}
+
+		if (module.exports.isObjEmpty(err)) {
+			next()
 		} else {
 			return res.status(400).json({ 'status' : 2, 'errors' : err});
 		}

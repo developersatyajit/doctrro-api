@@ -107,4 +107,19 @@ module.exports = {
           }).end();
         })
   },
+  servicesList: async (req, res, next) => {
+    await dgModel.getServicesList()
+      .then(async function (data) {
+        res.status(200).json({
+          status: "1",
+          data: data
+        });
+      }).catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
 }

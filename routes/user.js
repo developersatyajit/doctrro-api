@@ -26,6 +26,13 @@ router.route('/signup')
 router.route('/login')
   .post(validateBody(schemas.login), validateDbBody.login, userController.login)
 
+router.route('/login_with_mobile')
+  .post(validateBody(schemas.loginWithMobile), validateDbBody.loginWithMobile, userController.loginWithMobile)  
+
+router.route('/login_with_otp')
+  .post(validateBody(schemas.loginWithOtp), validateDbBody.loginWithOtp, userController.loginWithOtp) 
+
+
 router.route('/bloodgroup/all')
 .get( userController.all_blood_group);
 

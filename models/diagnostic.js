@@ -112,5 +112,18 @@ module.exports = {
 				reject(error);
 		    });
 		});
-	}
+	},
+	getServicesList: async() => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("select id as value, service_name as label from master_clinic_services")
+		    .then(function (data) {
+		    	resolve(data);
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getServicesList');
+				reject(error);
+		    });
+		}); 
+	},
 }

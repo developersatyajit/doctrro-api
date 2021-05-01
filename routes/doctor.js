@@ -119,7 +119,10 @@ router.route('/slot_by_date/:clinic_id/:start')
 
 router.route('/slot_patient')
   .post(signature,doctorController.authentication, doctorController.slotPatient);
-  
+
+
+router.route('/get_booking_history')
+  .get(signature,doctorController.authentication, doctorController.getBookingHistory);
 
 router.route('/apply_leave_on_date')
   .post(signature,doctorController.authentication, doctorController.applyLeaveOnDate);

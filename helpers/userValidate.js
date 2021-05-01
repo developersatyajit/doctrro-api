@@ -36,19 +36,26 @@ module.exports = {
   },
   schemas: {
     signup: Joi.object().keys({
-      email: Joi.string().required().email().max(100),
+      email: Joi.string().required().email().max(200),
       full_name: Joi.string().min(1).max(100).required().regex(/^[a-z][a-z\s\.]*$/i, 'full name'),
       contact: Joi.number().required(),
       category_id : Joi.number().required(),
-      practitioner: Joi.number().required(),
+      practitioner: Joi.number().required().allow("").optional(),
       password : Joi.string().required()
     }),
     login: Joi.object().keys({
       email: Joi.string().required().email().max(200),
       password : Joi.string().required()
     }),
+    loginWithMobile: Joi.object().keys({
+      mobile_number : Joi.number().min(10).required()
+    }),
+    loginWithOtp: Joi.object().keys({
+      otp : Joi.number().min(6).required(),
+      id:  Joi.string().required()
+    }),
     forgot_password: Joi.object().keys({
-      email: Joi.string().required().email().max(100)
+      email: Joi.string().required().email().max(200)
     }),
     reset_password: Joi.object().keys({
       new_password: Joi.string().required()

@@ -1590,4 +1590,21 @@ module.exports = {
             })
     },
 
+    getBookingHistory: async (req, res, next) => {
+
+      await doctorModel.getBookingHistory( req.user.id )
+      .then(( data ) => {
+        res.status(200).json({
+          status: "1",
+          data: data
+        });
+      })
+      .catch((err) => {
+        console.log( err )
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+    },
 }

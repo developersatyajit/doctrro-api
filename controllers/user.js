@@ -86,7 +86,7 @@ module.exports = {
       password : passwordHash, 
       salt: salt,
       category : category_id,
-      practioner: practitioner,
+      practioner: category_id == 2 ? 0 : practitioner,
       add_date : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss'),
       update_date	 : dateformat(new Date(), 'yyyy-mm-dd h:MM:ss')
     }
@@ -94,70 +94,70 @@ module.exports = {
     const otp = await module.exports.otp_generator();
     const website = req.get('host')
 
-			var options = {
-				method: 'POST',
-			  	url: process.env.SMS_URL,
-			  	headers: 
-			   	{
-			    	'cache-control': 'no-cache',
-			    	'content-type': 'application/json',
-			     	'authorization': process.env.SMS_KEY
-			    },
-			  	body: 
-			   	{
+	var options = {
+		method: 'POST',
+	  	url: process.env.SMS_URL,
+	  	headers: 
+	   	{
+	    	'cache-control': 'no-cache',
+	    	'content-type': 'application/json',
+	     	'authorization': process.env.SMS_KEY
+	    },
+	  	body: 
+	   	{
             message : "110735",
             variables_values : `${full_name}|${contact}|${website}|${otp}`,
             flash : 0,
             numbers : contact,
-			   		sender_id 	: process.env.SMS_SENDER_ID,
-			    	route 		: process.env.SMS_ROUTE
-			    },
-			  	json: true
+	   		sender_id 	: process.env.SMS_SENDER_ID,
+	    	route 		: process.env.SMS_ROUTE
+	    },
+	  	json: true
+	}
+
+
+	await userModel.signup(db_arr)
+  	.then(async function (uid) {
+
+  		request(options, async function (error, response, body) {
+
+			if (error) {
+			  	res.status(400).json({
+			    	status: 3,
+			    	message: 'Sorry!!! we are unable to send sms right now'
+			  	}).end();
 			}
 
-			request(options, async function (error, response, body) {
+			if(body.return){
 
-				  if (error) {
-		              res.status(400).json({
-		                  status: 3,
-		                  message: 'Sorry!!! we are unable to send sms right now'
-		              }).end();
-				  }
+				await userModel.updateOTP(uid, otp, body.request_id)
+				.then(() => {
+				    res.status(200).json({
+				        status: "1",
+				        id: body.request_id
+				    });
+				})
+				.catch(err => {
+				  res.status(400).json({
+				    status: 3,
+				    message: 'Something went wrong'
+				  }).end();
+				})
 
-			  	if(body.return){
-
-		            await userModel.signup(db_arr)
-		              .then(async function (uid) {
-
-		                  await userModel.updateOTP(uid, otp, body.request_id)
-		                  .then(() => {
-		                        res.status(200).json({
-		                            status: "1",
-		                            id: body.request_id
-		                        });
-		                  })
-		                  .catch(err => {
-		                      res.status(400).json({
-		                        status: 3,
-		                        message: 'Something went wrong'
-		                      }).end();
-		                  })
-		              })
-		              .catch(err => {
-		                      res.status(400).json({
-		                        status: 3,
-		                        message: 'Something went wrong'
-		                      }).end();
-		              })
-
-			  	}else{
-			  		res.status(400).json({
-			            status: 3,
-			            message: 'Something went wrong'
-			        }).end();
-			  	}
-			});
-
+			}else{
+				res.status(400).json({
+				    status: 3,
+				    message: 'Something went wrong'
+				}).end();
+			}
+		})
+  	})
+  	.catch(err => {
+		res.status(400).json({
+			status: 3,
+			message: 'Something went wrong'
+		}).end();
+  	})
   },
   otp_login: async (req, res, next) => {
 
@@ -238,6 +238,44 @@ module.exports = {
 	        }).end();
 	      })
 	},
+  loginWithOtp: async (req, res, next) => {
+
+      const {otp, id} = req.body;
+
+      await userModel.loginWithOtp(otp, id)
+          .then(async function (data) {
+
+            if(data === 'FAILURE'){
+              
+              res.status(400).json({
+                status: 2,
+                errors: {otp: 'Invalid otp submitted'} 
+              }).end();
+
+            }else{
+
+                let token = JWT.sign({
+                  iss: 'Doctrro',
+                  sub: data.id,
+                  email: data.email,
+                  role: data.role,
+                  practioner: data.practioner
+                }, config.jwt.secret, {expiresIn: '2460s'});  
+
+
+                res.status(200).json({
+                  status: "1",
+                  token: token
+                });
+            }
+            
+          }).catch(err => {
+            res.status(400).json({
+              status: 3,
+              message: 'Something went wrong'
+            }).end();
+          })
+  },
   otp_generator: async (req, res, next) => {
     let digits = '0123456789';
     let OTP = ''; 
@@ -284,7 +322,8 @@ module.exports = {
                       }).end();
                   }
 
-                  if(body.return){
+
+                  if(body && body.return){
 
                       await userModel.updateOTP(req.user.id, otp, body.request_id)
                       .then(() => {
@@ -332,6 +371,89 @@ module.exports = {
         message: 'Invalid login details'
       }).end();
     }
+  },
+  loginWithMobile: async (req, res, next) => {
+
+      const {mobile_number} = req.body
+
+      await module.exports.otp_generator()
+      .then(async( otp ) => {
+
+          await userModel.getUserByMobile( mobile_number )
+          .then(async( userData ) => {
+
+                const website = req.get('host')
+                var options = {
+                  method: 'POST',
+                    url: process.env.SMS_URL,
+                    headers: 
+                    {
+                      'cache-control': 'no-cache',
+                      'content-type': 'application/json',
+                      'authorization': process.env.SMS_KEY
+                    },
+                    body: 
+                    {
+                      message : "110735",
+                      variables_values : `${userData[0].full_name}|${mobile_number}|${website}|${otp}`,
+                      flash : 0,
+                      numbers : mobile_number,
+                      sender_id   : process.env.SMS_SENDER_ID,
+                      route     : process.env.SMS_ROUTE
+                    },
+                    json: true
+                }
+
+                request(options, async function (error, response, body) {
+                    if (error) {
+                        res.status(400).json({
+                            status: 3,
+                            message: 'Sorry!!! we are unable to send sms right now'
+                        }).end();
+                    }
+                    console.log( body, error )
+                    if(body && body.return){
+
+                        await userModel.updateOTP(userData[0].id, otp, body.request_id)
+                        .then(() => {
+                            res.status(200).json({
+                                status: 1,
+                                id: body.request_id
+                            });
+                        })
+                        .catch(err => {
+                            res.status(400).json({
+                              status: 2,
+                              message: 'Report this issue'
+                            }).end();
+                        })
+                    
+                    }else{
+
+                        res.status(400).json({
+                            status: 2,
+                            errors: {mobile_number: 'Something went wrong. Report this issue'}
+                        }).end();
+                    }
+                });
+
+          })
+          .catch(( err ) => {
+            console.log( err )
+            res.status(400).json({
+              status: 2,
+              message: 'Mobile number does not exist'
+            }).end();
+          })
+      })
+      .catch(( err ) => {
+        console.log( err )
+        res.status(400).json({
+          status: 2,
+          message: 'Something went wrong'
+        }).end();
+      })
+
   },
   user_details: async (req, res, next) => {
     await userModel.fetchUserDetails(req.user.id, req.user.role)
@@ -427,4 +549,10 @@ module.exports = {
         }).end();
       })
   },
+
+  
+
+
+
+
 }

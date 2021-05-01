@@ -20,6 +20,9 @@ const signature = passport.authenticate('jwt', {
 router.route('/all')
   .get(dgController.all);
 
+router.route('/services/all')
+  .get(dgController.servicesList);
+
 router.route('/find/:keyword')
 	.get(signature, dgController.authentication,dgController.find)
 

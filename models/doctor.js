@@ -1364,7 +1364,7 @@ module.exports = {
 			db.queryAsync(`
 
 				SELECT APT.id, APT.book_date, APT.mode_of_payment, 
-				APT.slot_id, AVS.schedule, DT.duration, APT.booking_id, APT.visit_status,
+				APT.slot_id, AVS.schedule, DT.duration, APT.booking_id, APT.visit_status, APT.status,
 			    CASE APT.book_for
 			    	WHEN 1 THEN APT.full_name
 			    	WHEN 2 THEN APT.other_name
@@ -1382,7 +1382,7 @@ module.exports = {
 			    LEFT JOIN doctor_timeslot DT ON DT.id = AVS.timeslot_id
 			    LEFT JOIN login L ON L.id = APT.patient_id
 			    WHERE APT.doc_id=? AND APT.clinic_id=?
-			    AND (APT.status !=2 AND APT.status !=3)
+			    
 				`, [doc_id, clinic_id])
 		    .then(function (data) {
 		    	resolve(data)
@@ -1406,7 +1406,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log('Model error', err)
-				var error = new Error('Error in getClinicBooking');
+				var error = new Error('Error in getAppointmentSlots');
 				reject(error);
 		    });
 		}); 
@@ -1900,5 +1900,17 @@ module.exports = {
 					reject(error);
 				})
 		})
+	},
+	getBookingHistory: async( doc_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("SELECT * FROM appointment WHERE doc_id=?", [doc_id])
+		    .then(function (data) {
+				resolve(data)
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in getBookingHistory');
+				reject(error);
+		    });
+		});
 	},
 }

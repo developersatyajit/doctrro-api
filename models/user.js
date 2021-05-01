@@ -53,6 +53,19 @@ module.exports = {
 		    });
 		}); 
 	},
+	getUserByMobile: async ( mobile )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("select * from login where contact = ?", [mobile])
+		    .then(function (data) {
+		    	resolve(data.length > 0 && data[0].id > 0 ? data : false);
+		    })
+		    .catch(function (err) {
+		    	console.log(err);
+				var error = new Error('Error in getUserByMobile');
+				reject(error);
+		    });
+		}); 
+	},
 	isVerifiedUser: async (email)=>{
 		return new Promise(function(resolve, reject) {
 			db.queryAsync("select * from login where email = ? AND is_verified=1", [email])
@@ -218,6 +231,56 @@ module.exports = {
 		    });
 		});
 	},
+	loginWithOtp: async( otp, delivery_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`SELECT COUNT(*) AS total, id, category, email, practioner
+				FROM login 
+				WHERE otp=? 
+				AND delivery_id=?`, [otp, delivery_id])
+		    .then(async (data) => {
+		    	if(data.length > 0 && data[0].total > 0){
+
+		    		if(data[0].category === 1){
+		    			
+			    		await module.exports.makeDoctorVerified(data[0].id)
+			    		.then(() => {
+			    			resolve({
+			    				id: data[0].id,
+			    				email: data[0].email,
+			    				role: data[0].category,
+			    				practioner: data[0].practioner
+			    			})
+			    		})
+			    		.catch((err) => {
+			    			var error = new Error('Error in checkotp');
+							reject(error);
+			    		})
+		    		}else{
+		    			await module.exports.makePatientVerified(data[0].id)
+			    		.then(() => {
+			    			resolve({
+			    				id: data[0].id,
+			    				email: data[0].email,
+			    				role: data[0].category,
+			    				practioner: data[0].practioner
+			    			})
+			    		})
+			    		.catch((err) => {
+			    			var error = new Error('Error in checkotp');
+							reject(error);
+			    		})
+		    		}
+		    		
+		    	}else{
+		    		resolve('FAILURE')
+		    	}
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in reset password');
+				reject(error);
+		    });
+		});
+	},
 	// revalidateOTP: async( otp, delivery_id ) => {
 	// 	return new Promise(function(resolve, reject) {
 	// 		db.queryAsync("SELECT COUNT(*) AS total, id, email, category FROM login WHERE otp=? AND delivery_id=? AND is_verified=0", [otp, delivery_id])
@@ -270,4 +333,17 @@ module.exports = {
 		    });
 		});
 	},
+	getUserByOTP: async( otp, delivery_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("SELECT * FROM login WHERE otp=? AND delivery_id=?", [otp, delivery_id])
+		    .then(function (data) {
+				resolve(data)
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in makePatientVerified');
+				reject(error);
+		    });
+		});
+	},
+	
 }
