@@ -85,19 +85,19 @@ module.exports = {
 		    	resolve(data.length > 0 && data[0].id > 0 ? data : false);
 		    })
 		    .catch(function (err) {
-				var error = new Error('Error in getting email id');
+				var error = new Error('Error in duplicateEmail');
 				reject(error);
 		    });
 		}); 
 	},
 	isMedicalPractitioner: async (id)=> {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("select practioner from login where id = ?", [id])
+			db.queryAsync("select practioner,category from login where id = ?", [id])
 		    .then(function (data) {
-		    	resolve(data.length > 0 && data[0].practioner > 0 ? true : false);
+		    	resolve(data.length > 0 && data[0].category == 1 && data[0].practioner == 1 ? true : false);
 		    })
 		    .catch(function (err) {
-				var error = new Error('Error in getting email id');
+				var error = new Error('Error in isMedicalPractitioner');
 				reject(error);
 		    });
 		}); 
@@ -110,7 +110,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log(err)
-				var error = new Error('Error in getting email id');
+				var error = new Error('Error in signup');
 				reject(error);
 		    });
 		}); 

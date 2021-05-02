@@ -121,6 +121,9 @@ module.exports = {
 							    let ts = await module.exports.getDoctorTimeslot(id, chambers.chamber_id)
 							    chambers = {...chambers, timeslot: ts}
 
+							    let sv = await module.exports.getDoctorServices(chambers.chamber_id)
+							    chambers = {...chambers, services: sv}
+
 							    let dl = await module.exports.getDoctorDateLeave(id, chambers.chamber_id)
 							    chambers = {...chambers, leave_on_date: dl}
 
@@ -148,6 +151,19 @@ module.exports = {
 		    .catch(function (err) {
 				console.log('Model error', err)
 				var error = new Error('Error in getting chamber');
+				reject(error);
+		    });
+		}); 
+	},
+	getDoctorServices: async( clinic_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync("select GROUP_CONCAT(sid) as services from diagnostic_services where clinic_id=?", [clinic_id])
+		    .then(function (data) {
+		    	resolve(data.length > 0 ? data[0].services : []);
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getDoctorServices');
 				reject(error);
 		    });
 		}); 
@@ -267,7 +283,20 @@ module.exports = {
 			})
 			.catch((err) => {
 				console.log(err);
-				var error = new Error('Error in updating password');
+				var error = new Error('Error in insertSpeciality');
+				reject(error);
+			})
+		}); 
+	},
+	insertServices: async ( clinic_id, sid )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync('INSERT INTO diagnostic_services SET clinic_id=?, sid=?', [clinic_id, sid])
+			.then(( res ) => {
+				resolve(true);
+			})
+			.catch((err) => {
+				console.log(err);
+				var error = new Error('Error in insertServices');
 				reject(error);
 			})
 		}); 
@@ -279,8 +308,6 @@ module.exports = {
 		    .then(function (result) {
 
 		    	if(data.speciality){
-
-		    		console.log( data.speciality );
 
 		    		db.queryAsync('DELETE FROM doctor_speciality WHERE doc_id=?', [id])
 					.then(() => {
@@ -411,7 +438,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log(err)
-				var error = new Error('Error in getting email id');
+				var error = new Error('Error in addDoctorChamber');
 				reject(error);
 		    });
 		})
@@ -424,7 +451,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log(err)
-				var error = new Error('Error in getting email id');
+				var error = new Error('Error in updateDoctorFees');
 				reject(error);
 		    });
 		})
@@ -669,7 +696,8 @@ module.exports = {
           location,
           landmark,
           pincode,
-          state
+          state,
+          services
         } = post_data;
 
 
@@ -710,6 +738,19 @@ module.exports = {
 					location
 				])
 		    .then(function (data) {
+
+		    	services.map( async( sid ) => {
+					await module.exports.insertServices(data.insertId, sid)
+					.then(() => {
+						resolve( true );
+					})
+					.catch(( error ) => {
+						console.log(err);
+						var error = new Error('Error in inserting services');
+						reject(error);
+					})
+				})
+
 		    	resolve(data.insertId);
 		    })
 		    .catch(function (err) {
@@ -738,7 +779,8 @@ module.exports = {
           location,
           landmark,
           pincode,
-          state
+          state,
+          services
         } = post_data;
 
 
@@ -781,6 +823,31 @@ module.exports = {
 					id
 				])
 		    .then(function (data) {
+
+		    	if(services){
+
+		    		db.queryAsync('DELETE FROM diagnostic_services WHERE clinic_id=?', [id])
+					.then(() => {
+						let success = 0;
+						services.map( async(dsp) => {
+							await module.exports.insertServices(id, dsp)
+							.then(() => {
+								resolve( true );
+							})
+							.catch(( error ) => {
+								console.log(err);
+								var error = new Error('Error in updating services');
+								reject(error);
+							})
+						})
+					})
+					.catch((err) => {
+						console.log(err);
+						var error = new Error('Error in updating services');
+						reject(error);
+					})
+		    	}
+
 		    	resolve(data.affectedRows);
 		    })
 		    .catch(function (err) {
