@@ -126,4 +126,47 @@ module.exports = {
 		    });
 		}); 
 	},
+	insertClinicPicture: async(file) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`INSERT INTO diagnostic_photo SET 
+				did = ?,
+				filename = ?,
+				file_id = ?
+				`, [
+					file.did,
+					file.filename,
+					file.file_id
+				])
+		    .then(function (data) {
+		    	resolve(data.insertId);
+		    })
+		    .catch(function (err) {
+				console.log(err)
+				var error = new Error('Error in inserting uploadClinicPicture');
+				reject(error);
+		    });
+		})
+	},
+	deleteClinicWithServiceOnFailUpload: async( id ) => {
+
+		return new Promise(function(resolve, reject) {
+				db.queryAsync('DELETE FROM diagnostic WHERE id=?', [id])
+				.then(() => {
+					db.queryAsync('DELETE FROM diagnostic_services WHERE clinic_id=?', [id])
+					.then(() => {
+						resolve( true )
+					})
+					.catch((err) => {
+						console.log(err);
+						var error = new Error('Error in deleteClinicWithServiceOnFailUpload');
+						reject(error);
+					})
+				})
+				.catch((err) => {
+					console.log(err);
+					var error = new Error('Error in deleteClinicWithServiceOnFailUpload');
+					reject(error);
+				})
+		})
+	}
 }

@@ -19,6 +19,7 @@ var app = express();
 const nocache   = require('nocache')
 const helmet    = require('helmet')
 const frameguard = require('frameguard')
+const serverless = require('serverless-http')
 
 app.use(bodyParser.json({limit: '50mb'}));
 //app.use(bodyParser.urlencoded({ extended: true }));
@@ -92,3 +93,4 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
+//module.exports.handler =  serverless(app);

@@ -680,6 +680,7 @@ module.exports = {
 		})
 	},
 	insertClinic: async( post_data) => {
+
 		const {
           address_1,
           address_2,
@@ -700,6 +701,7 @@ module.exports = {
           services
         } = post_data;
 
+        console.log( map, marker )
 
         return new Promise(function(resolve, reject) {
 			db.queryAsync(`INSERT INTO diagnostic SET 
@@ -733,13 +735,15 @@ module.exports = {
 					contact_1, 
 					contact_2,
 					contact_3, 
-					`${map.lat},${map.lng}`,
-					`${marker.lat},${marker.lng}`,
-					location
+					`${map[0].lat},${map[0].lng}`,
+					`${marker[0].lat},${marker[0].lng}`,
+					location.join(",")
 				])
 		    .then(function (data) {
 
-		    	services.map( async( sid ) => {
+		    	let serviceArray = services.split(",")
+
+		    	serviceArray.map( async( sid ) => {
 					await module.exports.insertServices(data.insertId, sid)
 					.then(() => {
 						resolve( true );
@@ -750,7 +754,6 @@ module.exports = {
 						reject(error);
 					})
 				})
-
 		    	resolve(data.insertId);
 		    })
 		    .catch(function (err) {
@@ -1142,7 +1145,7 @@ module.exports = {
 					 	LEFT JOIN doctor_chamber DC ON DC.doc_id = L.id
 					 	LEFT JOIN diagnostic D ON D.id = DC.chamber_id
 					 	where L.category = '1' and L.practioner='1'
-					 	GROUP BY L.id
+					 	GROUP BY L.id, D.center_name
 					`)
 					.then(function (ch) {
 

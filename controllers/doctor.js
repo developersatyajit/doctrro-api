@@ -497,6 +497,37 @@ module.exports = {
 
     await doctorModel.insertClinic( req.body )
       .then(async( ID ) => {
+        
+        if(req.files){
+          let clinicPicArr = req.files.file;
+
+          clinicPicArr.map(async( file ) => {
+              file.mv('./public/uploads/clinicgallery/' + file.name);
+
+              const fileArr = {
+                did : ID,
+                filename : file.name,
+                file_id: uuidv4()
+              }
+
+              await diagnostic.insertClinicPicture( fileArr )
+              .then(async function (data) {
+                // do nothing
+              }).catch(async(err) => {
+                await diagnostic.deleteClinicWithServiceOnFailUpload( ID )
+                .then(async function (data) {
+                  // do nothing
+                })
+                .catch(err => {
+                  console.log('error in query', err);
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end();  
+                })
+              })
+          })          
+        }
 
         await doctorModel.insertClinicTiming( ID, req.body )
         .then(async () => {
