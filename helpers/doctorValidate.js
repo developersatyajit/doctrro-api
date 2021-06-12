@@ -139,6 +139,10 @@ module.exports = {
       fri_end_time: Joi.string().required(),
       fri_start_time: Joi.string().required(),
       landmark: Joi.string().required(),
+      map_lat: Joi.number().required(),
+      map_long: Joi.number().required(),
+      marker_lat: Joi.number().required(),
+      marker_long: Joi.number().required(),
       // map: Joi.array().items(
       //   Joi.object().keys({
       //   	lat : Joi.number().required(),
@@ -152,8 +156,8 @@ module.exports = {
       //   })
       // ),
       // file: Joi.array().items(Joi.string().required()).allow("").optional(),
-      map: Joi.string().required(),
-      marker: Joi.string().required(),
+      // map: Joi.string().required(),
+      // marker: Joi.string().required(),
       file: Joi.string().required().allow("").optional(),
       fees: Joi.number().required().allow("").optional(),
       location: Joi.any(),

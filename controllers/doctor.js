@@ -11,7 +11,6 @@ const clinicModel = require('../models/diagnostic')
 const handler = require('../configuration/sms_handler');
 const generator = require('generate-password');
 
-
 module.exports = {
   authentication: async (req, res, next) => {
     if (req.user.id > 0 && req.user.role != null) {
@@ -491,16 +490,30 @@ module.exports = {
         }).end();
       })
   },
+  cleanUpPreviousEntry: async( id ) => {
+    return new Promise(async(resolve, reject) => {
+        await clinicModel.deleteClinicAndServiceOnFailUpload( id )
+        .then(() => resolve(true))
+        .catch((err) => reject(false))
+    })
+  },
+  uploadClinicPicture: async( fileArr ) => {
+    console.log( fileArr )
+    return new Promise( async(resolve, reject) => {
+        await clinicModel.insertClinicPicture( fileArr )
+        .then(() => resolve(true))
+        .catch((err) => reject(false))
+    })
+  },
   insert_clinic: async(req, res, next) => {
 
     const { fees } = req.body
 
-    await doctorModel.insertClinic( req.body )
+    await clinicModel.insertClinic( req.body )
       .then(async( ID ) => {
         
         if(req.files){
           let clinicPicArr = req.files.file;
-
           clinicPicArr.map(async( file ) => {
               file.mv('./public/uploads/clinicgallery/' + file.name);
 
@@ -510,26 +523,18 @@ module.exports = {
                 file_id: uuidv4()
               }
 
-              await diagnostic.insertClinicPicture( fileArr )
-              .then(async function (data) {
-                // do nothing
-              }).catch(async(err) => {
-                await diagnostic.deleteClinicWithServiceOnFailUpload( ID )
-                .then(async function (data) {
-                  // do nothing
-                })
-                .catch(err => {
-                  console.log('error in query', err);
+              let isUploaded = await module.exports.uploadClinicPicture(fileArr)
+              if( !isUploaded ){
+                  await module.exports.cleanUpPreviousEntry( ID )
                   res.status(400).json({
                     status: 3,
                     message: 'Something went wrong'
-                  }).end();  
-                })
-              })
+                  }).end(); 
+              }
           })          
         }
 
-        await doctorModel.insertClinicTiming( ID, req.body )
+        await clinicModel.insertClinicTiming( ID, req.body )
         .then(async () => {
 
           await userModel.isMedicalPractitioner(req.user.id)
@@ -582,10 +587,10 @@ module.exports = {
 
     const { fees } = req.body
 
-    await doctorModel.updateClinic( req.body )
+    await clinicModel.updateClinic( req.body )
       .then(async() => {
 
-        await doctorModel.updateClinicTiming( req.body )
+        await clinicModel.updateClinicTiming( req.body )
         .then(async () => {
 
           await userModel.isMedicalPractitioner(req.user.id)
