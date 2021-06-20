@@ -49,18 +49,19 @@ module.exports = {
 	updateClinic: async (req, res, next) => {
 
 		const {	id } = req.value.body;
+		console.log('id', id)
 
 		let err = {};
 		let isOwnClinic = await doctorModel.isClinicAdded(req.user.id, id);
 		
 		if(!isOwnClinic){
-			err.email = "Invalid clinic submitted";
+			err.clinic = "Invalid clinic submitted";
 		}
 
 		if (module.exports.isObjEmpty(err)) {
 			next()
 		} else {
-			return res.status(400).json({ 'status' : 2, 'errors' : err});
+			return res.status(400).json({ 'status' : 3, 'message' : err.clinic});
 		}
 	},
 	addTimeSlot: async (req, res, next) => {
@@ -72,9 +73,9 @@ module.exports = {
 		if(!isExistClinic){
 			return res.status(400).json({ 'status' : 3, 'message' : "Clinic does not exist"});
 		}else{
-			let isClinicAdded = await doctorModel.isSlotAvailable(req.user.id, id);
-			if(isClinicAdded){
-				return res.status(400).json({ 'status' : 3, 'message' : "You have already added this clinic"});
+			let isSlotAvailable = await doctorModel.isSlotAvailable(req.user.id, id);
+			if(isSlotAvailable){
+				return res.status(400).json({ 'status' : 3, 'message' : "You have already added timeslot for this clinic"});
 			}
 		}
 

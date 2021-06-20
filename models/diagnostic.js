@@ -2,15 +2,124 @@ const db=require('../configuration/dbConn');
 const doctorModel = require('../models/doctor');
 
 module.exports = {
-	all: async ()=>{
+	all: async (limit, offset)=>{
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("select * from diagnostic D LEFT JOIN diagnostic_time DT on DT.ds_id = D.id")
-		    .then(function (data) {
-		    	resolve(data);
+			db.queryAsync(`SELECT D.center_name, D.id as clinic_id,
+								D.clinic_type, 
+								D.area, D.city, D.address_1, D.address_2, 
+								D.landmark, D.pincode, D.state, D.country, D.contact_1, 
+								D.contact_2, D.contact_3, D.map, D.marker, D.location, 
+								GROUP_CONCAT(DS.sid SEPARATOR',') AS services,
+								GROUP_CONCAT(DSP.spl_id SEPARATOR',') AS speciality,
+								L.reg_no, L.email,
+								DT.*
+							FROM diagnostic D 
+							LEFT JOIN diagnostic_time DT ON DT.ds_id = D.id
+							LEFT JOIN diagnostic_services DS ON DS.clinic_id = D.id
+							LEFT JOIN doctor_chamber DC ON DC.chamber_id = D.id
+							LEFT JOIN login L ON L.id = DC.doc_id
+							LEFT JOIN doctor_speciality DSP ON DSP.doc_id = L.id
+							WHERE 1 GROUP BY DS.clinic_id, DSP.doc_id
+							LIMIT ?,?
+							`,  [parseInt(offset), parseInt(limit)])
+		    .then(async (data) => {
+
+		    	let allData = await Promise.all(
+		    		data.map( async(item) => {
+		    			let servicesNames = await module.exports.getClinicService( item.services )
+			    		.then(( rows ) => {
+			    			return rows
+			    		})
+			    		.catch((err) => {
+							console.log('Model error', err)
+							var error = new Error('Error in getting getClinicService');
+							reject(error);
+					    })
+
+					    let allphotos = await module.exports.getClinicPhotos( item.clinic_id )
+			    		.then(( photos ) => {
+			    			return photos
+			    		})
+			    		.catch((err) => {
+							console.log('Model error', err)
+							var error = new Error('Error in getting getClinicPhotos');
+							reject(error);
+					    })
+
+					    let allspeciality = await module.exports.getClinicSpeciality( item.speciality )
+			    		.then(( spl ) => {
+			    			return spl
+			    		})
+			    		.catch((err) => {
+							console.log('Model error', err)
+							var error = new Error('Error in getting getClinicSpeciality');
+							reject(error);
+					    })
+
+					    return {...item, services: servicesNames, gallery: allphotos, speciality: allspeciality }
+		    		})
+		    	)
+		    	
+
+		    	resolve(allData);
 		    })
-		    .catch(function (err) {
+		    .catch((err) => {
 				console.log('Model error', err)
 				var error = new Error('Error in getting diagnostic list');
+				reject(error);
+		    });
+		}); 
+	},
+	getClinicPhotos: async ( id )=> {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`select file_id, filename from diagnostic_photo
+					WHERE did = ?`, [id])
+		    .then(async (data) => {
+				resolve(data);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicService');
+				reject(error);
+		    });
+		}); 
+	},
+	getClinicService: async ( serviceArr )=> {
+		if(serviceArr == null || serviceArr.length == 0) return []
+		return new Promise(function(resolve, reject) {
+			let splitArr = serviceArr.split(",")
+			db.queryAsync(`select service_name from master_clinic_services 
+					WHERE id IN (?)`, [splitArr])
+		    .then(async (data) => {
+		    	let servArr = [];
+		    	data.map(item => {
+		    		return servArr.push(item.service_name)
+		    	})
+				resolve(servArr);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicService');
+				reject(error);
+		    });
+		}); 
+	},
+	getClinicSpeciality: async ( splarr )=> {
+		if(splarr == null || splarr.length == 0) return []
+		return new Promise(function(resolve, reject) {
+			let splitArr = splarr.split(",")
+			db.queryAsync(`select sp_name from master_speciality 
+					WHERE id IN (?)`, [splitArr])
+		    .then(async (data) => {
+		    	let servArr = [];
+		    	data.map(item => {
+		    		return servArr.push(item.sp_name)
+		    	})
+				resolve(servArr);
+		    })
+		    .catch( (err) => {
+				console.log('Model error', err)
+				var error = new Error('Error in getClinicSpeciality');
 				reject(error);
 		    });
 		}); 
@@ -346,8 +455,10 @@ module.exports = {
           contact_2,
           contact_3,
           country,
-          map,
-          marker,
+          map_lat,
+          map_long,
+          marker_lat,
+          marker_long,
           location,
           landmark,
           pincode,
@@ -389,8 +500,8 @@ module.exports = {
 					contact_1, 
 					contact_2,
 					contact_3, 
-					`${map.lat},${map.lng}`,
-					`${marker.lat},${marker.lng}`,
+					`${map_lat},${map_long}`,
+					`${marker_lat},${marker_long}`,
 					location,
 					id
 				])
@@ -401,7 +512,8 @@ module.exports = {
 		    		db.queryAsync('DELETE FROM diagnostic_services WHERE clinic_id=?', [id])
 					.then(() => {
 						let success = 0;
-						services.map( async(dsp) => {
+						let serviceArray = services.split(",")
+						serviceArray.map( async(dsp) => {
 							await module.exports.insertServices(id, dsp)
 							.then(() => {
 								resolve( true );
@@ -424,7 +536,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log(err)
-				var error = new Error('Error in inserting clinic');
+				var error = new Error('Error in updating clinic');
 				reject(error);
 		    });
 		})
@@ -494,7 +606,55 @@ module.exports = {
 				reject(error);
 		    });
 		})
-
 	},
 
+	isPictureExist: async ( file_id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync('SELECT COUNT(*) AS total FROM diagnostic_photo WHERE file_id=?', [file_id])
+			.then(( res ) => {
+				console.log('delete', res)
+				resolve(res[0].total > 0 ? true : false);
+			})
+			.catch((err) => {
+				console.log(err);
+				var error = new Error('Error in isPictureExist');
+				reject(error);
+			})
+		}); 
+	},
+	deletePicture: async ( file_id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync('DELETE FROM diagnostic_photo WHERE file_id=?', [file_id])
+			.then(( res ) => {
+				resolve( true );
+			})
+			.catch((err) => {
+				console.log(err);
+				var error = new Error('Error in deletePicture');
+				reject(error);
+			})
+		}); 
+	},
+	getDoctorList: async( clinic_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+				SELECT DC.*, L.full_name, D.center_name, GROUP_CONCAT(MS.sp_name SEPARATOR',') AS speciality,
+				UP.filename, UP.file_id
+				FROM doctor_chamber DC 
+				LEFT JOIN login L ON L.id = DC.doc_id 
+				LEFT JOIN diagnostic D ON D.id = DC.chamber_id 
+				LEFT JOIN doctor_speciality DS ON DS.doc_id = DC.doc_id
+				LEFT JOIN master_speciality MS ON MS.id = DS.spl_id
+				LEFT JOIN user_photo UP ON UP.uid = DC.doc_id
+				WHERE chamber_id=? GROUP BY DS.doc_id
+				`, [clinic_id])
+		    .then(function (data) {
+				resolve(data)
+		    })
+		    .catch(function (err) {
+				var error = new Error('Error in getDoctorList');
+				reject(error);
+		    });
+		});
+	},
 }

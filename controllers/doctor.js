@@ -75,93 +75,83 @@ module.exports = {
             data = {...data, image_url: url}
           }
 
-          await doctorModel.getDoctorSpeciality(req.user.id)
-          .then(async (spec) => {
 
-            data = {...data, speciality:spec};
+          await doctorModel.getDoctorEducation(req.user.id)
+          .then(async (ed) => {
+            data = {...data, ed};
 
-            	//data = {...data, spname};
+              await doctorModel.getDoctorChamber(req.user.id)
+              .then(async (ch) => {
 
-		              await doctorModel.getDoctorEducation(req.user.id)
-		              .then(async (ed) => {
-		                data = {...data, ed};
+                data = {...data, ch};
 
-		                  await doctorModel.getDoctorChamber(req.user.id)
-		                  .then(async (ch) => {
+                await doctorModel.countDoctorChamber(req.user.id)
+                .then(async (counter) => {
+                  data = {...data, total_clinic: counter};
 
-		                    data = {...data, ch};
+                  await doctorModel.getDoctorDocument(req.user.id)
+                  .then(async (doc) => {
+                    data = {...data, doc};
 
-		                    await doctorModel.countDoctorChamber(req.user.id)
-		                    .then(async (counter) => {
-		                      data = {...data, total_clinic: counter};
+                    if(data.speciality){
+                      await doctorModel.getSpecialityName(data.speciality.split(","))
+                      .then(async(spname) => {
+                        data = {...data, spname};
+                      })
+                      .catch((err) => {
+                          console.log( err, "speciality")
+                          res.status(400).json({
+                            status: 3,
+                            message: 'Something went wrong'
+                          }).end();
+                      })
+                    }
 
-		                      await doctorModel.getDoctorDocument(req.user.id)
-		                      .then(async (doc) => {
-		                        data = {...data, doc};
+                    res.status(200).json({
+                      status: "1",
+                      data: data
+                    });
+                  })
+                  .catch(err => {
+                    console.log(err, "document")
+                    res.status(400).json({
+                      status: 3,
+                      message: 'Something went wrong'
+                    }).end();
+                  })
 
-                            if(spec){
-                              await doctorModel.getSpecialityName(spec.split(","))
-                              .then(async(spname) => {
-                                data = {...data, spname};
-                              })
-                              .catch((err) => {
-                                  console.log( err)
-                                  res.status(400).json({
-                                    status: 3,
-                                    message: 'Something went wrong'
-                                  }).end();
-                              })
-                            }
-
-		                        res.status(200).json({
-		                          status: "1",
-		                          data: data
-		                        });
-		                      })
-		                      .catch(err => {
-		                        res.status(400).json({
-		                          status: 3,
-		                          message: 'Something went wrong'
-		                        }).end();
-		                      })
-
-		                    })
-		                    .catch(err => {
-		                      res.status(400).json({
-		                        status: 3,
-		                        message: 'Something went wrong'
-		                      }).end();
-		                    })
-		                      
-		                    
-		                  })
-		                  .catch(err => {
-		                    res.status(400).json({
-		                      status: 3,
-		                      message: 'Something went wrong'
-		                    }).end();
-		                  })
-		                
-
-		              })
-		              .catch(err => {
-		                res.status(400).json({
-		                  status: 3,
-		                  message: 'Something went wrong'
-		                }).end();
-		              })
-		       
+                })
+                .catch(err => {
+                  console.log(err, "chamber")
+                  res.status(400).json({
+                    status: 3,
+                    message: 'Something went wrong'
+                  }).end();
+                })
+                  
+                
+              })
+              .catch(err => {
+                console.log(err, "not count")
+                res.status(400).json({
+                  status: 3,
+                  message: 'Something went wrong'
+                }).end();
+              })
+            
 
           })
           .catch(err => {
+            console.log(err, "eductaion")
             console.log(err)
             res.status(400).json({
               status: 3,
               message: 'Something went wrong'
             }).end();
           })
-
+   
         }).catch(err => {
+          console.log(err, "basic")
           res.status(400).json({
             status: 3,
             message: 'Something went wrong'
@@ -490,13 +480,6 @@ module.exports = {
         }).end();
       })
   },
-  cleanUpPreviousEntry: async( id ) => {
-    return new Promise(async(resolve, reject) => {
-        await clinicModel.deleteClinicAndServiceOnFailUpload( id )
-        .then(() => resolve(true))
-        .catch((err) => reject(false))
-    })
-  },
   uploadClinicPicture: async( fileArr ) => {
     console.log( fileArr )
     return new Promise( async(resolve, reject) => {
@@ -511,28 +494,6 @@ module.exports = {
 
     await clinicModel.insertClinic( req.body )
       .then(async( ID ) => {
-        
-        if(req.files){
-          let clinicPicArr = req.files.file;
-          clinicPicArr.map(async( file ) => {
-              file.mv('./public/uploads/clinicgallery/' + file.name);
-
-              const fileArr = {
-                did : ID,
-                filename : file.name,
-                file_id: uuidv4()
-              }
-
-              let isUploaded = await module.exports.uploadClinicPicture(fileArr)
-              if( !isUploaded ){
-                  await module.exports.cleanUpPreviousEntry( ID )
-                  res.status(400).json({
-                    status: 3,
-                    message: 'Something went wrong'
-                  }).end(); 
-              }
-          })          
-        }
 
         await clinicModel.insertClinicTiming( ID, req.body )
         .then(async () => {
@@ -546,10 +507,39 @@ module.exports = {
 
                 await doctorModel.addDoctorChamber( req.user.id, ID, doctor_fees )
                 .then(() => {
-                    res.status(200).json({
-                        status: "1",
-                        id: ID
-                    });
+
+                    if(req.files){
+                      let clinicPicArr = req.files.file;
+                      clinicPicArr.map(async( file ) => {
+                          file.mv('./public/uploads/clinicgallery/' + file.name);
+
+                          const fileArr = {
+                            did : ID,
+                            filename : file.name,
+                            file_id: uuidv4()
+                          }
+
+                          let isUploaded = await module.exports.uploadClinicPicture(fileArr)
+                          if( !isUploaded ){
+                              res.status(200).json({
+                                status: 1,
+                                id: ID,
+                                message: 'Sorry for the technical issue. Your clinic information is saved with us but we are unable  to upload images at this time. Try to upload it after some time.'
+                              }).end(); 
+                          }else{
+                            res.status(200).json({
+                                status: "1",
+                                id: ID,
+                                message: 'Successfully added'
+                            });
+                          }
+                      })          
+                    } else {
+                        res.status(200).json({
+                            status: "1",
+                            id: ID
+                        });
+                    }                    
                 })
                 .catch(err => {
                   console.log('error in query', err);
@@ -585,7 +575,7 @@ module.exports = {
   },
   update_clinic: async(req, res, next) => {
 
-    const { fees } = req.body
+    const { fees, id } = req.body
 
     await clinicModel.updateClinic( req.body )
       .then(async() => {
@@ -602,9 +592,37 @@ module.exports = {
 
                 await doctorModel.updateDoctorFees( req.user.id, req.body.id, doctor_fees )
                 .then(() => {
-                    res.status(200).json({
-                        status: "1"
-                    });
+
+                    if(req.files){
+                      let clinicPicArr = req.files.file;
+                      clinicPicArr.map(async( file ) => {
+                          file.mv('./public/uploads/clinicgallery/' + file.name);
+
+                          const fileArr = {
+                            did : id,
+                            filename : file.name,
+                            file_id: uuidv4()
+                          }
+
+                          let isUploaded = await module.exports.uploadClinicPicture(fileArr)
+                          if( !isUploaded ){
+                              res.status(200).json({
+                                status: 1,
+                                message: 'We are unable to upload images at this time. Please try after some time.'
+                              }).end(); 
+                          }else{
+                              res.status(200).json({
+                                  status: "1",
+                                  message: 'Successfully updated'
+                              });  
+                          }
+                      })          
+                    } else {
+                      res.status(200).json({
+                          status: "1",
+                          message: 'Successfully updated'
+                      });  
+                    }
                 })
                 .catch(err => {
                   console.log('error in query', err);

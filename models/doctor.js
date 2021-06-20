@@ -61,9 +61,12 @@ module.exports = {
 				L.contact, L.reg_council, 
 				L.reg_no, L.reg_year, 
 				L.year_of_exp, L.gender, 
-				L.practioner, UP.filename, UP.file_id
+				L.practioner, 
+				GROUP_CONCAT(DSP.spl_id) as speciality,
+				UP.filename, UP.file_id
 				FROM login L
 				LEFT JOIN user_photo UP ON UP.uid = L.id
+				LEFT JOIN doctor_speciality DSP ON DSP.doc_id = L.id
 				WHERE L.id=? AND L.category = ?`, [id, role_id])
 		    .then(function (data) {
 		    	resolve(data);
@@ -113,31 +116,29 @@ module.exports = {
 		    		await module.exports.getUserDetails(id)
 			    	.then( async( basic ) => {
 
-			    		if(basic[0].practioner > 0){
+			    		let clinic = [];
 
-			    			let clinic = [];
+		    			for (let chambers of data) {
 
-			    			for (let chambers of data) {
-							    let ts = await module.exports.getDoctorTimeslot(id, chambers.chamber_id)
-							    chambers = {...chambers, timeslot: ts}
+		    				let cp = await module.exports.getClinicPictures(chambers.chamber_id)
+		    				chambers = {...chambers, gallery: cp}
 
-							    let sv = await module.exports.getDoctorServices(chambers.chamber_id)
-							    chambers = {...chambers, services: sv}
+						    let ts = await module.exports.getDoctorTimeslot(id, chambers.chamber_id)
+						    chambers = {...chambers, timeslot: ts}
 
-							    let dl = await module.exports.getDoctorDateLeave(id, chambers.chamber_id)
-							    chambers = {...chambers, leave_on_date: dl}
+						    let sv = await module.exports.getDoctorServices(chambers.chamber_id)
+						    chambers = {...chambers, services: sv}
 
-							    let ls = await module.exports.getDoctorSlotLeave(id, chambers.chamber_id)
-							    chambers = {...chambers, leave_on_slot: ls}
+						    let dl = await module.exports.getDoctorDateLeave(id, chambers.chamber_id)
+						    chambers = {...chambers, leave_on_date: dl}
 
-							    clinic.push( chambers )
-							}
+						    let ls = await module.exports.getDoctorSlotLeave(id, chambers.chamber_id)
+						    chambers = {...chambers, leave_on_slot: ls}
 
-							resolve(clinic) 
+						    clinic.push( chambers )
+						}
 
-			    		}else{
-			    			resolve(data);
-			    		}
+						resolve(clinic) 
 			    	})
 			    	.catch(function (err) {
 						console.log('basic error', err)
@@ -154,6 +155,20 @@ module.exports = {
 				reject(error);
 		    });
 		}); 
+	},
+	getClinicPictures: async( clinic_id ) => {
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`SELECT * FROM 
+    			diagnostic_photo 
+    			WHERE did=?`, [clinic_id])
+	    	.then(( data) => {
+	    		resolve(data)
+	    	})
+	    	.catch(function (err) {
+				var error = new Error('Error in getClinicPictures');
+				reject(error);
+		    });
+		})
 	},
 	getDoctorServices: async( clinic_id ) => {
 		return new Promise(function(resolve, reject) {
@@ -182,6 +197,7 @@ module.exports = {
 		    });
 		})
 	},
+	
 	getDoctorDateLeave: async( doc_id, clinic_id ) => {
 		return new Promise(function(resolve, reject) {
 			db.queryAsync(`SELECT id, DATE_FORMAT(start_date, '%Y-%m-%d') as start_date, DATE_FORMAT(end_date, '%Y-%m-%d') as end_date FROM 
@@ -396,11 +412,12 @@ module.exports = {
 		return new Promise(function(resolve, reject) {
 			db.queryAsync("select * from doctor_chamber where doc_id=? and chamber_id=?", [doc_id, chamber_id])
 		    .then(function (data) {
+		    	console.log('data',  data );
 		    	resolve(data.length > 0 && data[0].id > 0 ? true : false);
 		    })
 		    .catch(function (err) {
 				console.log('Model error', err)
-				var error = new Error('Error in fetching clinic details');
+				var error = new Error('Error in isClinicAdded');
 				reject(error);
 		    });
 		}); 
@@ -413,7 +430,7 @@ module.exports = {
 		    })
 		    .catch(function (err) {
 				console.log('Model error', err)
-				var error = new Error('Error in fetching slot');
+				var error = new Error('Error in isSlotAvailable');
 				reject(error);
 		    });
 		}); 
@@ -1662,4 +1679,5 @@ module.exports = {
 		    });
 		});
 	},
+	
 }

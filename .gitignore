@@ -6,6 +6,8 @@ functions
 # testing
 /coverage
 
+/public/uploads
+
 # production
 /build
 

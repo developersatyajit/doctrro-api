@@ -183,7 +183,8 @@ module.exports = {
       area: Joi.string().required().allow("").optional(),
       clinic_type: Joi.number().required(),
       center_name: Joi.string().required(),
-      services: Joi.array().items(Joi.number().required()),
+      // services: Joi.array().items(Joi.number().required()),
+      services: Joi.string().required(),
       city: Joi.string().required().allow("").optional(),
       contact_1: Joi.number().required(),
       contact_2: Joi.number().required().allow("").optional(),
@@ -192,16 +193,21 @@ module.exports = {
       fri_end_time: Joi.string().required(),
       fri_start_time: Joi.string().required(),
       landmark: Joi.string().required(),
-      map: Joi.object().keys({
-        lat : Joi.number().required(),
-        lng : Joi.number().required()
-      }),
-      marker: Joi.object().keys({
-        lat : Joi.number().required(),
-        lng : Joi.number().required()
-      }),
+      // map: Joi.object().keys({
+      //   lat : Joi.number().required(),
+      //   lng : Joi.number().required()
+      // }),
+      // marker: Joi.object().keys({
+      //   lat : Joi.number().required(),
+      //   lng : Joi.number().required()
+      // }),
+      map_lat: Joi.number().required(),
+      map_long: Joi.number().required(),
+      marker_lat: Joi.number().required(),
+      marker_long: Joi.number().required(),
+      file: Joi.string().required().allow("").optional(),
       fees: Joi.number().required().allow("").optional(),
-      location: Joi.string().required(),
+      location: Joi.any(),
       mon_end_time: Joi.string().required(),
       mon_start_time: Joi.string().required(),
       pincode: Joi.number().required(),

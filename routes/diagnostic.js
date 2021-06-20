@@ -9,15 +9,15 @@ const {
   validateParam,
   schemas,
   schema_posts
-} = require('../helpers/userValidate');
-const validateDbBody = require('../helpers/userDbValidate');
+} = require('../helpers/diagnosticValidate');
+const validateDbBody = require('../helpers/diagnosticDbValidate');
 
 const signature = passport.authenticate('jwt', {
   session: false
 });
 
 // start routing
-router.route('/all')
+router.route('/all/:limit/:offset')
   .get(dgController.all);
 
 router.route('/services/all')
@@ -28,6 +28,13 @@ router.route('/find/:keyword')
 
 router.route('/:id')
 	.get(signature, dgController.authentication, dgController.getTimeslot)
+
+router.route('/doctor-list/:id')
+  .get(dgController.getDoctorList)
+
+	
+router.route('/delete_picture/:id')
+  .delete(signature,dgController.authentication,validateParam(schemas.deletePicture), validateDbBody.deletePicture, dgController.delete_picture);
 
 // router.route('/signup')
 //   .post(validateBody(schemas.signup), validateDbBody.signup, userController.signup)

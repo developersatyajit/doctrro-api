@@ -22,7 +22,8 @@ module.exports = {
   },
 
   all: async (req, res, next) => {
-      await dgModel.all()
+      const { limit, offset } = req.params
+      await dgModel.all( limit, offset )
         .then(async function (data) {
           res.status(200).json({
             status: "1",
@@ -109,6 +110,37 @@ module.exports = {
   },
   servicesList: async (req, res, next) => {
     await dgModel.getServicesList()
+      .then(async function (data) {
+        res.status(200).json({
+          status: "1",
+          data: data
+        });
+      }).catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+  delete_picture: async (req, res, next) => {
+    const {id} = req.params
+    await dgModel.deletePicture( id )
+      .then(async function (data) {
+        res.status(200).json({
+          status: "1"
+        });
+      }).catch(err => {
+        console.log('error in query', err);
+        res.status(400).json({
+          status: 3,
+          message: 'Something went wrong'
+        }).end();
+      })
+  },
+  getDoctorList: async (req, res, next) => {
+    const {id} = req.params
+    await dgModel.getDoctorList( id )
       .then(async function (data) {
         res.status(200).json({
           status: "1",
