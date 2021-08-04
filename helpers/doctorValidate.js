@@ -78,6 +78,8 @@ module.exports = {
         })
       ).allow("").optional(),
 
+      fromWindow: Joi.number().required(),
+
       day_of_week: Joi.number().required(),
       start : Joi.string().required(),
       end : Joi.string().required(),

@@ -304,7 +304,7 @@ module.exports = {
 
         await patientModel.getPatientByDelivery(request)
         .then(( result ) => {
-
+          try{
             let token = JWT.sign({
               iss: 'Doctrro',
               sub: result[0].id,
@@ -318,8 +318,15 @@ module.exports = {
               data: result,
               token
             }).end()
+          }catch(e){
+            res.status(400).json({
+              status: 2,
+              message: 'Invalid otp submitted'
+            }).end()
+          }
         })
         .catch((err) => {
+          console.log(err)
             res.status(400).json({
               status: 3,
               message: 'Something went wrong'

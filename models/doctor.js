@@ -127,7 +127,7 @@ module.exports = {
 						    chambers = {...chambers, timeslot: ts}
 
 						    let sv = await module.exports.getDoctorServices(chambers.chamber_id)
-						    chambers = {...chambers, services: sv}
+						    chambers = {...chambers, services: sv.services, service_name: [sv.service_name]}
 
 						    let dl = await module.exports.getDoctorDateLeave(id, chambers.chamber_id)
 						    chambers = {...chambers, leave_on_date: dl}
@@ -172,9 +172,14 @@ module.exports = {
 	},
 	getDoctorServices: async( clinic_id ) => {
 		return new Promise(function(resolve, reject) {
-			db.queryAsync("select GROUP_CONCAT(sid) as services from diagnostic_services where clinic_id=?", [clinic_id])
+			db.queryAsync(`select 
+				GROUP_CONCAT(DS.sid) as services,
+				GROUP_CONCAT(MCS.service_name) as service_name
+				from diagnostic_services DS
+				LEFT JOIN master_clinic_services MCS ON MCS.id = DS.sid
+				where DS.clinic_id=?`, [clinic_id])
 		    .then(function (data) {
-		    	resolve(data.length > 0 ? data[0].services : []);
+		    	resolve(data.length > 0 ? data[0] : '');
 		    })
 		    .catch(function (err) {
 				console.log('Model error', err)
@@ -474,6 +479,19 @@ module.exports = {
 		    .then(function (data) {
 
 		    	let timeslot_id = data.insertId
+
+		    	// add visiting clinic
+		    	if(post_data.fromWindow == 1){
+		    		db.queryAsync(`INSERT INTO doctor_chamber(doc_id, chamber_id, fees, visiting_clinic) VALUES (?,?,?,?)`, [doc_id,post_data.id, 0, 1])
+				    .then(function (rw) {
+				    	resolve(rw);
+				    })
+				    .catch(function (err) {
+						console.log(err)
+						var error = new Error('Error in getting email id');
+						reject(error);
+				    });
+		    	}
 		    	
 		    	// morning slot
 		    	let mvalues = [];

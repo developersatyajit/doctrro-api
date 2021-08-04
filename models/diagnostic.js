@@ -56,7 +56,7 @@ module.exports = {
 							reject(error);
 					    })
 
-					    return {...item, services: servicesNames, gallery: allphotos, speciality: allspeciality }
+					    return {...item, service_name: servicesNames, gallery: allphotos, speciality: allspeciality }
 		    		})
 		    	)
 		    	
@@ -646,7 +646,7 @@ module.exports = {
 				LEFT JOIN doctor_speciality DS ON DS.doc_id = DC.doc_id
 				LEFT JOIN master_speciality MS ON MS.id = DS.spl_id
 				LEFT JOIN user_photo UP ON UP.uid = DC.doc_id
-				WHERE chamber_id=? GROUP BY DS.doc_id
+				WHERE DC.chamber_id=? AND DC.visiting_clinic=1 GROUP BY DS.doc_id
 				`, [clinic_id])
 		    .then(function (data) {
 				resolve(data)
@@ -656,5 +656,40 @@ module.exports = {
 				reject(error);
 		    });
 		});
+	},
+	getDoctorBooking: async ( doc_id, clinic_id )=>{
+		return new Promise(function(resolve, reject) {
+			db.queryAsync(`
+
+				SELECT APT.id, APT.book_date, APT.mode_of_payment, 
+				APT.slot_id, AVS.schedule, DT.duration, APT.booking_id, APT.visit_status, APT.status,
+			    CASE APT.book_for
+			    	WHEN 1 THEN APT.full_name
+			    	WHEN 2 THEN APT.other_name
+			    END patient_name,    
+			    CASE APT.book_for
+			    	WHEN 1 THEN APT.email
+			        WHEN 2 THEN APT.other_email
+			    END patient_email,
+			    CASE APT.book_for
+			    	WHEN 1 THEN L.contact
+			        WHEN 2 THEN APT.other_contact
+			    END patient_contact    
+			    FROM appointment APT
+			    LEFT JOIN available_slot AVS ON AVS.id = APT.slot_id
+			    LEFT JOIN doctor_timeslot DT ON DT.id = AVS.timeslot_id
+			    LEFT JOIN login L ON L.id = APT.patient_id
+			    WHERE APT.doc_id=? AND APT.clinic_id=?
+			    
+				`, [doc_id, clinic_id])
+		    .then(function (data) {
+		    	resolve(data)
+		    })
+		    .catch(function (err) {
+				console.log('Model error', err)
+				var error = new Error('Error in getDoctorBooking');
+				reject(error);
+		    });
+		}); 
 	},
 }

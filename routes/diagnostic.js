@@ -32,6 +32,8 @@ router.route('/:id')
 router.route('/doctor-list/:id')
   .get(dgController.getDoctorList)
 
+router.route('/doctor_booking/:clinic_id/:doc_id')
+  .get(signature,dgController.authentication, dgController.getDoctorBooking);
 	
 router.route('/delete_picture/:id')
   .delete(signature,dgController.authentication,validateParam(schemas.deletePicture), validateDbBody.deletePicture, dgController.delete_picture);
